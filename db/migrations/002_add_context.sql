@@ -1,24 +1,20 @@
--- Current database schema (snapshot).
--- Apply migrations in db/migrations/ in order to bring a database up to date.
-
-create extension if not exists pgcrypto;
+-- Everything after 001: contact enrichment, contact_profile, email_context,
+-- email_analysis updates, email_metrics. End state matches db/schema.sql.
 
 -- ---------------------------------------------------------------------------
--- contact — recipient (Plane 2.1 identity + lifecycle anchors)
+-- contact — Plane 2.1 identity + lifecycle anchors
 -- ---------------------------------------------------------------------------
-create table contact (
-  id                uuid primary key default gen_random_uuid(),
-  brand             text,
-  email             text,
-  name              text,
-  customer_segment  text,
-  lead_source       text,
-  signup_at         timestamptz,
-  last_purchase_at  timestamptz,
-  external_id       text,
-  extras            jsonb not null default '{}',
-  created_at        timestamptz not null default now()
-);
+alter table contact
+  add column customer_segment  text,
+  add column lead_source       text,
+  add column signup_at         timestamptz,
+  add column last_purchase_at  timestamptz,
+  add column external_id       text,
+  add column extras            jsonb not null default '{}';
+
+alter table contact
+  alter column created_at set default now(),
+  alter column created_at set not null;
 
 create unique index contact_brand_email_idx
   on contact (brand, lower(email))
@@ -54,27 +50,13 @@ create table contact_profile (
 );
 
 -- ---------------------------------------------------------------------------
--- email_message — RAW: immutable after insert
+-- email_message — constraints and indexes
 -- ---------------------------------------------------------------------------
-create table email_message (
-  id              uuid primary key default gen_random_uuid(),
-  contact_id      uuid references contact(id),
-
-  source          text,
-  message_id      text,
-  from_name       text,
-  from_email      text,
-  reply_to        text,
-  to_email        text,
-  subject         text,
-  preheader       text,
-  body_html       text,
-  body_text       text,
-  sent_at         timestamptz,
-  raw             jsonb not null default '{}',
-
-  created_at      timestamptz not null default now()
-);
+alter table email_message
+  alter column raw set default '{}',
+  alter column raw set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null;
 
 create unique index email_message_source_message_id_idx
   on email_message (source, message_id)
@@ -90,10 +72,8 @@ create table email_context (
   id                          uuid primary key default gen_random_uuid(),
   message_id                  uuid not null references email_message(id) on delete cascade,
 
-  -- 2.1 segment at send
   segment_at_send             text not null default 'cold_prospect',
 
-  -- 2.2–2.4 profile snapshot at send
   industry                    text,
   industry_other              text,
   company_name                text,
@@ -105,7 +85,6 @@ create table email_context (
   timezone                    text,
   language                    text,
 
-  -- 2.5 engagement history before this send
   lead_source_at_send         text,
   prior_opens                 integer,
   prior_clicks                integer,
@@ -116,7 +95,6 @@ create table email_context (
   last_engagement_at          timestamptz,
   last_engagement_type        text,
 
-  -- 2.6 send timing
   sent_at                     timestamptz not null,
   day_of_week                 text,
   hour_local                  integer,
@@ -125,7 +103,6 @@ create table email_context (
   days_since_last_purchase    integer,
   days_since_previous_send    integer,
 
-  -- sequence / cadence
   sequence_number             integer,
   is_first_touch              boolean,
 
@@ -144,36 +121,17 @@ create index email_context_sequence_idx on email_context (sequence_number);
 create index email_context_sent_at_idx on email_context (sent_at);
 
 -- ---------------------------------------------------------------------------
--- email_analysis — Plane 1 feature tags (past + present; partial; expanded later)
+-- email_analysis — Plane 1 feature tags
 -- ---------------------------------------------------------------------------
-create table email_analysis (
-  id                    uuid primary key default gen_random_uuid(),
-  message_id            uuid not null references email_message(id) on delete cascade,
+alter table email_analysis
+  drop column if exists model_version,
+  alter column extras set default '{}',
+  alter column extras set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null,
+  add column updated_at timestamptz not null default now();
 
-  campaign_type         text,
-  intent                text,
-  subject_type          text,
-  has_urgency           boolean,
-  has_emoji             boolean,
-  has_personalization   boolean,
-  body_length           text,
-  framework             text,
-  persuasion            text[],
-  emotion               text[],
-  social_proof          text,
-  cta_type              text,
-  cta_count             integer,
-  has_offer             boolean,
-  offer_type            text,
-  extras                jsonb not null default '{}',
-
-  created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now(),
-
-  unique (message_id)
-);
-
-create index email_analysis_message_idx on email_analysis (message_id);
+create unique index email_analysis_message_unique_idx on email_analysis (message_id);
 
 -- ---------------------------------------------------------------------------
 -- email_metrics — Plane 4 outcomes per send (1:1 with email_message)

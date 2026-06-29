@@ -178,16 +178,16 @@ Often the strongest single predictor.
 
 ## Plane 3 — Deliverability
 
-For cold email, more predictive than any copy tag.
+For cold email, more predictive than any copy tag. **Pre-send inputs are levers** (like Plane 1) — the AI or operator can tune domain, warmup, content risk. **Measured placement** lands in Plane 4 `email_metrics`.
 
-### Infrastructure (input)
+### Infrastructure (input — tunable)
 
 - sending domain / IP
 - warmup status
 - volume vs reputation limits
 - SPF / DKIM / DMARC pass?
 
-### Content spam risk (pre-send)
+### Content spam risk (pre-send — tunable)
 
 - spam-word score
 - link count
@@ -195,11 +195,11 @@ For cold email, more predictive than any copy tag.
 - attachment?
 - ALL-CAPS
 
-### Placement (measured)
+### Placement (measured → Plane 4)
 
-- delivered / bounced (hard vs soft)
-- Primary / Promotions / Spam
-- complaint rate
+- delivered / bounced (hard vs soft) → `email_metrics`
+- Primary / Promotions / Spam → `email_metrics.placement`
+- complaint rate → `email_metrics.spam_complaint`
 
 ---
 

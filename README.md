@@ -6,10 +6,11 @@ Store raw marketing emails and AI-derived analysis for competitive research.
 
 PostgreSQL. Schema lives in `db/schema.sql`; migrations run in order from `db/migrations/`.
 
-Apply the initial migration:
+Apply all migrations:
 
 ```bash
 psql "$DATABASE_URL" -f db/migrations/001_initial_schema.sql
+psql "$DATABASE_URL" -f db/migrations/002_add_context.sql
 ```
 
 Or bootstrap from the full schema snapshot:
@@ -22,6 +23,11 @@ psql "$DATABASE_URL" -f db/schema.sql
 
 | Table | Purpose |
 |-------|---------|
-| `contact` | Recipient the email was sent to |
+| `contact` | Recipient + segment, lifecycle anchors |
+| `contact_profile` | Industry, firmographics, geo (optional) |
 | `email_message` | Raw email as received (immutable after insert) |
-| `email_analysis` | AI-derived attributes for one message |
+| `email_context` | Plane 2 snapshot at send (segment, engagement, timing) |
+| `email_analysis` | Plane 1 feature tags (AI, rules, or import — past + present) |
+| `email_metrics` | Plane 4 outcomes (opens, clicks, conversion, negatives) |
+
+See [PLANE_1_ANALYSIS.md](PLANE_1_ANALYSIS.md), [PLANE_2_CONTEXT.md](PLANE_2_CONTEXT.md), and [PLANE_4_METRICS.md](PLANE_4_METRICS.md).
