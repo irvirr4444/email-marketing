@@ -30,4 +30,4 @@ psql "$DATABASE_URL" -f db/schema.sql
 | `email_analysis` | Plane 1 feature tags (AI, rules, or import — past + present) |
 | `email_metrics` | Plane 4 outcomes (opens, clicks, conversion, negatives) |
 
-See [PLANE_1_ANALYSIS.md](PLANE_1_ANALYSIS.md), [PLANE_2_CONTEXT.md](PLANE_2_CONTEXT.md), and [PLANE_4_METRICS.md](PLANE_4_METRICS.md).
+See [docs/PLANE_GUIDE.md](docs/PLANE_GUIDE.md) for architecture and per-plane docs.
