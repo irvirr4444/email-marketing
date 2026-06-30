@@ -3,9 +3,9 @@ import {
   countryCodeToFlag,
   type Country,
 } from '../../shared/countries.ts'
-import { SearchableSelect } from './SearchableSelect'
+import { AutocompleteField } from './AutocompleteField'
 
-type CountrySelectProps = {
+type CountryFieldProps = {
   value: string | undefined
   onChange: (value: string | undefined) => void
   disabled?: boolean
@@ -18,29 +18,21 @@ function renderCountry(c: Country) {
         {countryCodeToFlag(c.code)}
       </span>
       <span>{c.name}</span>
-      <span className="ml-auto text-[#6b6960]">{c.code}</span>
+      <span className="ml-auto text-[var(--on-surface-variant)]">{c.code}</span>
     </>
   )
 }
 
-export function CountrySelect({ value, onChange, disabled }: CountrySelectProps) {
+export function CountryField({ value, onChange, disabled }: CountryFieldProps) {
   return (
-    <SearchableSelect
+    <AutocompleteField
       items={COUNTRIES}
       value={value}
       onChange={onChange}
       disabled={disabled}
-      placeholder="Select country…"
+      label="Country"
       getLabel={(c) => c.name}
       getSearchText={(c) => `${c.name} ${c.code}`}
-      renderTriggerValue={(c) =>
-        c ? (
-          <span className="inline-flex items-center gap-2">
-            <span>{countryCodeToFlag(c.code)}</span>
-            <span>{c.name}</span>
-          </span>
-        ) : null
-      }
       renderOption={(c) => (
         <span className="flex w-full items-center gap-2">{renderCountry(c)}</span>
       )}

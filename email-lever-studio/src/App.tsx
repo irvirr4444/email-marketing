@@ -3,17 +3,18 @@ import { suggestLevers, generateDraft } from './api'
 import {
   cloneLeverSuggestion,
   emptyColdContext,
-  labelForSegment,
   type EmailDraft,
   type LeverSuggestion,
 } from './types'
-import { ColdContextPanel } from './components/ColdContextPanel'
-import { LeverPanel } from './components/LeverPanel'
-import { DraftPanel } from './components/DraftPanel'
+import { AppBar } from './components/AppBar'
+import { DraftCard } from './components/DraftCard'
+import { IntentChips } from './components/IntentChips'
+import { RecipientSection } from './components/RecipientSection'
+import { StepRail } from './components/StepRail'
+import { StyleSection } from './components/StyleSection'
 
 export default function App() {
   const [context, setContext] = useState(emptyColdContext)
-  const [contextCollapsed, setContextCollapsed] = useState(false)
   const [levers, setLevers] = useState<LeverSuggestion>(() =>
     cloneLeverSuggestion(),
   )
@@ -57,7 +58,6 @@ export default function App() {
       setDraft(null)
       try {
         const suggested = await runSuggestLevers()
-        setContextCollapsed(true)
         setLoadingLevers(false)
         setLoadingDraft(true)
         const result = await generateDraft(context, suggested)
@@ -74,7 +74,6 @@ export default function App() {
 
     setLoadingDraft(true)
     try {
-      setContextCollapsed(true)
       const result = await generateDraft(context, levers)
       setDraft(result)
       setDraftVersion((v) => v + 1)
@@ -100,57 +99,69 @@ export default function App() {
     }
   }
 
-  const busy = loadingLevers || loadingDraft
+  function handlePrimaryAction() {
+    if (draft) {
+      handleRegenerate()
+    } else {
+      handleGenerateEmail()
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-[#fafaf8]">
-      <header className="border-b border-[#e5e3de] bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-6 py-4">
-          <span className="text-[22px] font-semibold tracking-tight text-[#4f46e5]">
-            Lever
-          </span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--surface)]">
+      <StepRail showDraftStep={draft !== null || loadingDraft} />
+      <AppBar
+        loadingLevers={loadingLevers}
+        loadingDraft={loadingDraft}
+        canGenerate={canSuggest}
+        hasDraft={draft !== null}
+        onGenerate={handlePrimaryAction}
+      />
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
-            {error}
-          </div>
-        )}
+      <main className="space-y-12 py-8 lg:pl-[7.5rem]">
+        <div className="mx-auto max-w-7xl space-y-12 px-6">
+          {error && (
+            <div className="rounded-lg border border-[var(--error)]/30 bg-[color-mix(in_srgb,var(--error)_8%,transparent)] px-4 py-3 text-[13px] text-[var(--error)]">
+              {error}
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-6">
-          <div className="lg:col-span-3">
-            <ColdContextPanel
+          <div id="section-recipient" className="section-scroll-target">
+            <RecipientSection
               context={context}
-              collapsed={contextCollapsed}
-              loading={busy}
+              disabled={loadingLevers || loadingDraft}
               onChange={setContext}
-              onSubmit={handleGenerateEmail}
-              onExpand={() => setContextCollapsed(false)}
             />
           </div>
 
-          <div className="lg:col-span-4">
-            <LeverPanel
+          {(draft || loadingDraft) && (
+            <div id="section-draft" className="section-scroll-target">
+              <DraftCard
+                draft={draft}
+                loading={loadingDraft}
+                draftVersion={draftVersion}
+                onChange={setDraft}
+              />
+            </div>
+          )}
+
+          <div id="section-intent" className="section-scroll-target">
+            <IntentChips
+              intent={levers.intent}
+              disabled={loadingLevers || loadingDraft}
+              onChange={(intent) => setLevers({ ...levers, intent })}
+            />
+          </div>
+
+          <div id="section-style" className="section-scroll-target">
+            <StyleSection
               levers={levers}
-              segmentLabel={labelForSegment(context.segmentAtSend)}
+              leversSuggested={leversSuggested}
               canSuggest={canSuggest}
               loadingLevers={loadingLevers}
               loadingDraft={loadingDraft}
-              hasDraft={draft !== null}
               onLeversChange={setLevers}
               onSuggestLevers={handleSuggestLevers}
-              onRegenerate={handleRegenerate}
-            />
-          </div>
-
-          <div className="lg:col-span-5">
-            <DraftPanel
-              draft={draft}
-              loading={loadingDraft}
-              draftVersion={draftVersion}
-              onChange={setDraft}
             />
           </div>
         </div>

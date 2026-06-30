@@ -224,11 +224,6 @@ export const CARD_DEFINITIONS: CardDef[] = [
         ],
       },
       {
-        key: 'personalizationToken',
-        label: 'Personalization',
-        type: 'toggle',
-      },
-      {
         key: 'type',
         label: 'Type',
         type: 'segmented',
@@ -350,18 +345,6 @@ export const CARD_DEFINITIONS: CardDef[] = [
     label: 'Copy Strategy',
     fields: [
       {
-        key: 'framework',
-        label: 'Framework',
-        type: 'segmented',
-        options: [
-          { value: 'AIDA', label: 'AIDA' },
-          { value: 'PAS', label: 'PAS' },
-          { value: 'BAB', label: 'BAB' },
-          { value: 'FAB', label: 'FAB' },
-          { value: 'none', label: 'None' },
-        ],
-      },
-      {
         key: 'persuasion',
         label: 'Persuasion',
         type: 'segmented',
@@ -413,7 +396,7 @@ export const CARD_DEFINITIONS: CardDef[] = [
   },
   {
     key: 'cta',
-    label: 'CTA',
+    label: 'Call to Action',
     fields: [
       {
         key: 'count',

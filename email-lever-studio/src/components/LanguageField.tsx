@@ -1,38 +1,32 @@
 import { LANGUAGES } from '../../shared/languages.ts'
-import { SearchableSelect } from './SearchableSelect'
+import { AutocompleteField } from './AutocompleteField'
 
-type LanguageSelectProps = {
+type LanguageFieldProps = {
   value: string | undefined
   onChange: (value: string | undefined) => void
   disabled?: boolean
 }
 
-export function LanguageSelect({
+export function LanguageField({
   value,
   onChange,
   disabled,
-}: LanguageSelectProps) {
+}: LanguageFieldProps) {
   return (
-    <SearchableSelect
+    <AutocompleteField
       items={LANGUAGES}
       value={value}
       onChange={onChange}
       disabled={disabled}
-      placeholder="Select language…"
+      label="Language"
       getLabel={(l) => l.name}
       getSearchText={(l) => `${l.name} ${l.code}`}
-      renderTriggerValue={(l) =>
-        l ? (
-          <span className="inline-flex items-center gap-2">
-            <span>{l.name}</span>
-            <span className="text-[#6b6960]">{l.code}</span>
-          </span>
-        ) : null
-      }
       renderOption={(l) => (
         <span className="flex w-full items-center gap-2">
           <span>{l.name}</span>
-          <span className="ml-auto text-[#6b6960]">{l.code}</span>
+          <span className="ml-auto text-[var(--on-surface-variant)]">
+            {l.code}
+          </span>
         </span>
       )}
     />
