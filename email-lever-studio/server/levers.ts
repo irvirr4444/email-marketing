@@ -77,11 +77,10 @@ export function validateColdContext(context: ColdContext): string | null {
   if (!context.recipientName?.trim()) return 'Recipient name is required.'
   if (!context.recipientEmail?.trim()) return 'Recipient email is required.'
   if (
-    !CUSTOMER_SEGMENT_OPTIONS.includes(
-      context.segmentAtSend as CustomerSegment,
-    )
+    !context.segmentAtSend ||
+    !CUSTOMER_SEGMENT_OPTIONS.includes(context.segmentAtSend)
   ) {
-    return 'Invalid customer segment.'
+    return 'Please select a relationship.'
   }
   return null
 }

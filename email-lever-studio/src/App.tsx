@@ -10,6 +10,7 @@ import { AppBar } from './components/AppBar'
 import { DraftCard } from './components/DraftCard'
 import { IntentChips } from './components/IntentChips'
 import { RecipientSection } from './components/RecipientSection'
+import { SegmentSelector } from './components/SegmentSelector'
 import { StepRail } from './components/StepRail'
 import { StyleSection } from './components/StyleSection'
 
@@ -109,7 +110,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)]">
-      <StepRail showDraftStep={draft !== null || loadingDraft} />
+      <StepRail />
       <AppBar
         loadingLevers={loadingLevers}
         loadingDraft={loadingDraft}
@@ -144,6 +145,16 @@ export default function App() {
               />
             </div>
           )}
+
+          <div id="section-relationship" className="section-scroll-target">
+            <SegmentSelector
+              value={context.segmentAtSend}
+              disabled={loadingLevers || loadingDraft}
+              onChange={(segment) =>
+                setContext({ ...context, segmentAtSend: segment })
+              }
+            />
+          </div>
 
           <div id="section-intent" className="section-scroll-target">
             <IntentChips

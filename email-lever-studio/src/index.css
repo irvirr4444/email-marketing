@@ -59,6 +59,25 @@ body {
   @apply bg-[var(--surface)] text-[var(--on-surface)] font-sans antialiased;
 }
 
+button:not(:disabled),
+[role='switch']:not(:disabled),
+[role='menuitem'],
+.segment-option:not(:disabled),
+.step-rail-item,
+.step-rail-fab,
+.recommend-styles-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='switch']:disabled {
+  cursor: not-allowed;
+}
+
+.m-switch-wrap:not(:has(.m-switch:disabled)) {
+  cursor: pointer;
+}
+
 .elevation-1 {
   box-shadow: var(--elevation-1);
 }
@@ -742,6 +761,18 @@ body {
   color: var(--on-surface-variant);
 }
 
+main .m-ripple::after {
+  display: none;
+}
+
+.m-switch:active:not(:disabled) .m-switch-thumb {
+  width: 18px;
+}
+
+.m-switch[aria-checked='true']:active:not(:disabled) .m-switch-thumb {
+  transform: translateX(20px);
+}
+
 /* Material switch — refined M3-style */
 .m-switch {
   position: relative;
@@ -761,7 +792,7 @@ body {
     box-shadow var(--motion-duration-medium) var(--motion-standard);
 }
 
-.m-switch:hover:not(:disabled) {
+.m-switch:not([aria-checked='true']):hover:not(:disabled) {
   border-color: var(--outline);
   background: var(--surface-container-high);
 }
@@ -779,6 +810,12 @@ body {
 }
 
 .m-switch[aria-checked='true']:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 92%, white) 0%,
+    var(--primary) 100%
+  );
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.08),
     0 3px 14px color-mix(in srgb, var(--primary) 38%, transparent);
@@ -817,14 +854,6 @@ body {
     0 0 0 0.5px rgba(0, 0, 0, 0.05);
 }
 
-.m-switch:active:not(:disabled) .m-switch-thumb {
-  width: 20px;
-}
-
-.m-switch[aria-checked='true']:active:not(:disabled) .m-switch-thumb {
-  transform: translateX(18px);
-}
-
 .m-switch-label {
   font-size: 12px;
   font-weight: 500;
@@ -841,6 +870,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+}
+
+.m-switch-wrap:has(.m-switch:disabled) {
+  cursor: not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -19,7 +19,7 @@ export function LockButton({
       onClick={onClick}
       disabled={disabled}
       title={title ?? (locked ? 'Unlock' : 'Lock')}
-      className="m-ripple flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--surface-container-high)] disabled:opacity-50"
+      className="m-ripple flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-[var(--surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
       style={{ color: locked ? 'var(--tertiary)' : 'var(--on-surface-variant)' }}
     >
       <MaterialIcon

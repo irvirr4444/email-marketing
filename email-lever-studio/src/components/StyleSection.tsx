@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { CardKey, LeverSuggestion } from '../types'
 import { CARD_DEFINITIONS } from '../types'
 import { MaterialIcon } from './MaterialIcon'
@@ -20,16 +20,6 @@ type StyleRowProps = {
   columns?: 1 | 2
   children: ReactNode
 }
-
-const STYLE_CARD_KEYS: CardKey[] = [
-  'subjectLine',
-  'preheader',
-  'sender',
-  'body',
-  'copyStrategy',
-  'cta',
-  'offer',
-]
 
 function StyleRow({ label, columns = 1, children }: StyleRowProps) {
   return (
@@ -57,30 +47,21 @@ export function StyleSection({
   onLeversChange,
   onSuggestLevers,
 }: StyleSectionProps) {
-  const [settlingCards, setSettlingCards] = useState<Set<string>>(new Set())
-  const [touchedCards, setTouchedCards] = useState<Set<CardKey>>(() => new Set())
-  const wasSuggestedRef = useRef(leversSuggested)
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
   const disabled = loadingLevers || loadingDraft
 
-  useEffect(() => {
-    if (leversSuggested && !wasSuggestedRef.current) {
-      setSettlingCards(new Set(STYLE_CARD_KEYS))
-    }
-    wasSuggestedRef.current = leversSuggested
-  }, [leversSuggested])
-
-  useEffect(() => {
-    if (settlingCards.size === 0) return
-    const t = window.setTimeout(() => setSettlingCards(new Set()), 240)
-    return () => window.clearTimeout(t)
-  }, [settlingCards])
-
-  function flashCard(key: string) {
-    setSettlingCards((prev) => new Set(prev).add(key))
+  function touchField(cardKey: CardKey, fieldKey: string) {
+    setTouchedFields((prev) =>
+      new Set(prev).add(`${cardKey}.${fieldKey}`),
+    )
   }
 
-  function touchCard(cardKey: CardKey) {
-    setTouchedCards((prev) => new Set(prev).add(cardKey))
+  function touchId(cardKey: CardKey, fieldKey: string) {
+    return `${cardKey}.${fieldKey}`
+  }
+
+  function isFieldEmphasized(cardKey: CardKey, fieldKey: string) {
+    return leversSuggested || touchedFields.has(touchId(cardKey, fieldKey))
   }
 
   function updateCard(
@@ -98,10 +79,6 @@ export function StyleSection({
       },
     }
     onLeversChange(next)
-    if (userInitiated) {
-      touchCard(cardKey)
-      flashCard(cardKey)
-    }
   }
 
   function handleSuggest() {
@@ -113,7 +90,6 @@ export function StyleSection({
     const cardDef = CARD_DEFINITIONS.find((c) => c.key === cardKey)!
     const card = levers[cardKey]
     const useStacked = cardKey === 'cta'
-    const emphasizeSelection = leversSuggested || touchedCards.has(cardKey)
 
     return (
       <StyleGroupCard
@@ -124,7 +100,6 @@ export function StyleSection({
         showReasoning={leversSuggested}
         showLock={leversSuggested}
         subdued={!leversSuggested}
-        settling={settlingCards.has(cardKey)}
         disabled={disabled}
         variant={variant}
         onToggleLock={() =>
@@ -140,7 +115,10 @@ export function StyleSection({
           ctaCopy={cardKey === 'cta' ? levers.cta.ctaCopy : undefined}
           disabled={disabled}
           layout={useStacked ? 'stacked' : 'inline'}
-          emphasizeSelection={emphasizeSelection}
+          isFieldEmphasized={(fieldKey) =>
+            isFieldEmphasized(cardKey, fieldKey)
+          }
+          onFieldInteraction={(fieldKey) => touchField(cardKey, fieldKey)}
           onValuesChange={(values) =>
             updateCard(
               cardKey,
@@ -173,7 +151,7 @@ export function StyleSection({
           type="button"
           onClick={handleSuggest}
           disabled={!canSuggest || disabled}
-          className="recommend-styles-btn m-ripple inline-flex shrink-0 items-center gap-2.5 rounded-full px-5 py-3 text-[12px] font-bold uppercase tracking-wide disabled:cursor-not-allowed disabled:opacity-50"
+          className="recommend-styles-btn inline-flex shrink-0 cursor-pointer items-center gap-2.5 rounded-full px-5 py-3 text-[12px] font-bold uppercase tracking-wide disabled:cursor-not-allowed disabled:opacity-50"
         >
           <MaterialIcon
             name="auto_awesome"

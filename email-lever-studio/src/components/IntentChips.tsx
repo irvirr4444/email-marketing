@@ -12,7 +12,7 @@ export function IntentChips({ intent, disabled, onChange }: IntentChipsProps) {
   function updateValue(value: string) {
     onChange({
       ...intent,
-      value: value as IntentLever['value'],
+      value: (intent.value === value ? '' : value) as IntentLever['value'],
     })
   }
 

@@ -37,7 +37,7 @@ export function MaterialChip({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`m-ripple inline-flex items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors duration-150 ${height} ${
+      className={`m-ripple inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors duration-150 ${height} ${
         selected
           ? selectedClass
           : 'border-[var(--outline-variant)] bg-[var(--surface-container)] text-[var(--on-surface)] hover:bg-[var(--surface-container-high)]'

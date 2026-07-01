@@ -1,6 +1,5 @@
 import type { ColdContext } from '../types'
 import { ContextDetails } from './ContextDetails'
-import { SegmentSelector } from './SegmentSelector'
 
 type RecipientSectionProps = {
   context: ColdContext
@@ -46,14 +45,6 @@ export function RecipientSection({
           <label htmlFor="recipient-email">Recipient email</label>
         </div>
       </div>
-
-      <SegmentSelector
-        value={context.segmentAtSend}
-        disabled={disabled}
-        onChange={(segment) =>
-          onChange({ ...context, segmentAtSend: segment })
-        }
-      />
 
       <ContextDetails
         context={context}

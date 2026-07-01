@@ -47,7 +47,7 @@ export type ColdContext = {
   country?: string
   language?: string
   notes?: string
-  segmentAtSend: CustomerSegment
+  segmentAtSend: CustomerSegment | ''
   sequenceNumber: 1
 }
 
@@ -355,7 +355,6 @@ export const CARD_DEFINITIONS: CardDef[] = [
           { value: 'scarcity', label: 'Scarcity' },
           { value: 'liking', label: 'Liking' },
           { value: 'commitment', label: 'Commitment' },
-          { value: 'none', label: 'None' },
         ],
       },
       {
@@ -377,8 +376,8 @@ export const CARD_DEFINITIONS: CardDef[] = [
         label: 'Specificity',
         type: 'segmented',
         options: [
-          { value: 'hard_numbers', label: 'Hard #' },
-          { value: 'vague', label: 'Vague' },
+          { value: 'hard_numbers', label: 'Hard Number' },
+          { value: 'vague', label: 'Vague Number' },
         ],
       },
       {
@@ -471,7 +470,6 @@ export const CARD_DEFINITIONS: CardDef[] = [
         label: 'Scarcity',
         type: 'segmented',
         options: [
-          { value: 'none', label: 'None' },
           { value: 'time_limited', label: 'Time-limited' },
           { value: 'quantity_limited', label: 'Qty-limited' },
         ],
@@ -582,7 +580,7 @@ export function emptyColdContext(): ColdContext {
   return {
     recipientName: '',
     recipientEmail: '',
-    segmentAtSend: 'cold_prospect',
+    segmentAtSend: '',
     sequenceNumber: 1,
   }
 }

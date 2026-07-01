@@ -70,7 +70,7 @@ export function AppBar({
               type="button"
               onClick={onGenerate}
               disabled={disabled}
-              className="m-ripple rounded-full bg-[var(--primary)] px-6 py-2.5 text-[14px] font-medium text-[var(--on-primary)] transition-opacity disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--on-surface)_12%,transparent)] disabled:text-[color-mix(in_srgb,var(--on-surface)_38%,transparent)]"
+              className="m-ripple cursor-pointer rounded-full bg-[var(--primary)] px-6 py-2.5 text-[14px] font-medium text-[var(--on-primary)] transition-opacity disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--on-surface)_12%,transparent)] disabled:text-[color-mix(in_srgb,var(--on-surface)_38%,transparent)]"
             >
               {buttonLabel}
             </button>

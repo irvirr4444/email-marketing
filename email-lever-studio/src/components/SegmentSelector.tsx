@@ -6,9 +6,9 @@ import {
 import { MaterialIcon } from './MaterialIcon'
 
 type SegmentSelectorProps = {
-  value: CustomerSegment
+  value: CustomerSegment | ''
   disabled?: boolean
-  onChange: (segment: CustomerSegment) => void
+  onChange: (segment: CustomerSegment | '') => void
 }
 
 const SEGMENT_META: Record<
@@ -43,10 +43,12 @@ export function SegmentSelector({
             How well do they know you? This shapes tone and style suggestions.
           </p>
         </div>
-        <div className="segment-panel-badge" aria-hidden>
-          <MaterialIcon name={SEGMENT_META[value].icon} size={20} />
-          <span>{labelForSegment(value)}</span>
-        </div>
+        {value ? (
+          <div className="segment-panel-badge" aria-hidden>
+            <MaterialIcon name={SEGMENT_META[value].icon} size={20} />
+            <span>{labelForSegment(value)}</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="segment-grid" role="radiogroup" aria-label="Relationship">
@@ -61,7 +63,7 @@ export function SegmentSelector({
               role="radio"
               aria-checked={selected}
               disabled={disabled}
-              onClick={() => onChange(seg)}
+              onClick={() => onChange(selected ? '' : seg)}
               className={`segment-option m-ripple ${selected ? 'selected' : ''}`}
             >
               <span className="segment-option-icon">

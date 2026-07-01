@@ -9,9 +9,10 @@ type StyleFieldProps = {
   ctaCopy?: string
   onValuesChange: (values: Record<string, unknown>) => void
   onCtaCopyChange?: (copy: string) => void
+  onFieldInteraction?: (fieldKey: string) => void
   disabled?: boolean
   layout?: 'inline' | 'stacked'
-  emphasizeSelection?: boolean
+  isFieldEmphasized?: (fieldKey: string) => boolean
 }
 
 function isFieldInactive(
@@ -58,14 +59,16 @@ export function StyleField({
   ctaCopy,
   onValuesChange,
   onCtaCopyChange,
+  onFieldInteraction,
   disabled,
   layout = 'inline',
-  emphasizeSelection = true,
+  isFieldEmphasized = () => true,
 }: StyleFieldProps) {
   const card = CARD_DEFINITIONS.find((c) => c.key === cardKey)
   if (!card) return null
 
-  function setValue(key: string, val: unknown) {
+  function setFieldValue(key: string, val: unknown) {
+    onFieldInteraction?.(key)
     onValuesChange({ ...values, [key]: val })
   }
 
@@ -89,23 +92,26 @@ export function StyleField({
               className={rowClass(fullWidth)}
             >
               <div className="style-field-controls">
-                {group.map((field) => (
-                  <label
-                    key={field.key}
-                    className="flex items-center gap-2 text-[12px] text-[var(--on-surface-variant)]"
-                  >
-                    <span className="font-medium">{field.label}</span>
-                    <MaterialSwitch
-                      checked={
-                        emphasizeSelection
-                          ? Boolean(values[field.key])
-                          : false
-                      }
-                      disabled={disabled}
-                      onChange={(v) => setValue(field.key, v)}
-                    />
-                  </label>
-                ))}
+                {group.map((field) => {
+                  const showToggle = isFieldEmphasized(field.key)
+                  return (
+                    <div
+                      key={field.key}
+                      className="flex items-center gap-2 text-[12px] text-[var(--on-surface-variant)]"
+                    >
+                      <span className="font-medium">{field.label}</span>
+                      <MaterialSwitch
+                        checked={
+                          showToggle
+                            ? Boolean(values[field.key])
+                            : false
+                        }
+                        disabled={disabled}
+                        onChange={(v) => setFieldValue(field.key, v)}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )
@@ -114,6 +120,7 @@ export function StyleField({
         const field = group
         const isSegmented = field.type === 'segmented'
         const fieldInactive = isFieldInactive(field, values)
+        const showChoice = isFieldEmphasized(field.key)
 
         return (
           <div
@@ -144,24 +151,31 @@ export function StyleField({
                       variant="choice"
                       label={opt.label}
                       selected={
-                        emphasizeSelection &&
+                        showChoice &&
                         String(values[field.key] ?? '') === opt.value
                       }
                       disabled={disabled || fieldInactive}
-                      onClick={() => setValue(field.key, opt.value)}
+                      onClick={() => {
+                        const current = String(values[field.key] ?? '')
+                        if (showChoice && current === opt.value) {
+                          setFieldValue(field.key, '')
+                        } else {
+                          setFieldValue(field.key, opt.value)
+                        }
+                      }}
                     />
                   ))}
                 </div>
               </div>
             )}
             {field.type === 'text' && (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <span className="style-field-label">{field.label}</span>
                 <input
                   type="text"
                   value={String(values[field.key] ?? '')}
                   disabled={disabled || fieldInactive}
-                  onChange={(e) => setValue(field.key, e.target.value)}
+                  onChange={(e) => setFieldValue(field.key, e.target.value)}
                   placeholder="e.g. 20%"
                   className="w-full max-w-[140px] rounded-lg border border-[var(--outline)] bg-[var(--surface)] px-2.5 py-1.5 text-[13px] focus:border-[var(--primary)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
@@ -176,10 +190,15 @@ export function StyleField({
           <span className="field-micro-label mb-2 block">CTA copy</span>
           <input
             type="text"
-            value={emphasizeSelection ? (ctaCopy ?? '') : ''}
+            value={
+              isFieldEmphasized('ctaCopy') ? (ctaCopy ?? '') : ''
+            }
             disabled={disabled}
             placeholder={CTA_COPY_PLACEHOLDER}
-            onChange={(e) => onCtaCopyChange(e.target.value)}
+            onChange={(e) => {
+              onFieldInteraction?.('ctaCopy')
+              onCtaCopyChange(e.target.value)
+            }}
             className="w-full rounded-lg border border-[var(--outline)] bg-[var(--surface)] px-3 py-2 text-[13px] focus:border-[var(--primary)] focus:outline-none"
           />
         </div>

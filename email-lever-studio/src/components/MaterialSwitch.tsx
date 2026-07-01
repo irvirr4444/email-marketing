@@ -14,10 +14,7 @@ export function MaterialSwitch({
   id,
 }: MaterialSwitchProps) {
   return (
-    <label
-      htmlFor={id}
-      className={`m-switch-wrap ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-    >
+    <div className={`m-switch-wrap ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}>
       <button
         id={id}
         type="button"
@@ -26,11 +23,11 @@ export function MaterialSwitch({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className="m-switch m-ripple"
+        className="m-switch"
       >
         <span className="m-switch-thumb" aria-hidden />
       </button>
       {label && <span className="m-switch-label">{label}</span>}
-    </label>
+    </div>
   )
 }

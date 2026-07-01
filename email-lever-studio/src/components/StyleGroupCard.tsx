@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { LockButton } from './LockButton'
 import { MaterialIcon } from './MaterialIcon'
 
@@ -12,7 +11,6 @@ type StyleGroupCardProps = {
   showReasoning?: boolean
   showLock?: boolean
   subdued?: boolean
-  settling?: boolean
   disabled?: boolean
   variant?: CardVariant
   onToggleLock: () => void
@@ -32,21 +30,12 @@ export function StyleGroupCard({
   showReasoning = true,
   showLock = true,
   subdued = false,
-  settling,
   disabled,
   variant = 'supporting',
   onToggleLock,
   children,
 }: StyleGroupCardProps) {
-  const [localSettling, setLocalSettling] = useState(false)
   const isPrimary = variant === 'primary'
-
-  useEffect(() => {
-    if (!settling) return
-    setLocalSettling(true)
-    const t = window.setTimeout(() => setLocalSettling(false), 240)
-    return () => window.clearTimeout(t)
-  }, [settling])
 
   const surfaceClass = subdued
     ? 'card-idle'
@@ -56,7 +45,7 @@ export function StyleGroupCard({
 
   return (
     <div
-      className={`h-fit transition-colors ${PADDING[variant]} ${surfaceClass} ${highlightLocked ? 'card-locked' : ''} ${localSettling ? 'lock-settle' : ''}`}
+      className={`h-fit ${PADDING[variant]} ${surfaceClass} ${highlightLocked ? 'card-locked' : ''}`}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
