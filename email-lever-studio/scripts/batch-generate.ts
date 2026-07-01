@@ -176,7 +176,7 @@ async function main() {
     const scenarios = args.diverse50
       ? buildDiverse50Scenarios()
       : listScenarios({ matrix: args.matrix, diverse50: false, limit: args.limit })
-    const docxPath = await reexportBatchDocx(args.reexportDocx, scenarios)
+    const docxPath = await reexportBatchDocx(args.reexportDocx, scenarios.length ? scenarios : undefined)
     console.error(`Docx rebuilt: ${docxPath}`)
     console.log(docxPath)
     return
@@ -325,7 +325,6 @@ async function main() {
       company: args.company!,
       product: args.product!,
       records: docxRecords,
-      assets: socialProofAssets,
       outPath: docxPath,
     })
     console.error(`Docx: ${docxPath}`)

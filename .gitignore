@@ -10,3 +10,6 @@ __pycache__/
 email-lever-studio/output/
 email-lever-studio/dist/
 /.venv
+*.docx
+.agents/
+skills-lock.json

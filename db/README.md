@@ -1,27 +1,26 @@
 # Database
 
-PostgreSQL schema for storing marketing emails and analysis.
+PostgreSQL / Supabase schema for marketing emails.
 
-## Apply schema
+## Generated email templates
 
-```bash
-# Migrations (recommended)
-psql "$DATABASE_URL" -f db/migrations/001_initial_schema.sql
-psql "$DATABASE_URL" -f db/migrations/002_add_context.sql
-
-# Or full snapshot
-psql "$DATABASE_URL" -f db/schema.sql
-```
-
-## Tables
+For AI-generated cold email batches (not sent-mail tracking):
 
 | Table | Purpose |
 |-------|---------|
-| `contact` | Recipient + segment, lifecycle anchors |
-| `contact_profile` | Industry, firmographics, geo |
-| `email_message` | Raw email as received (immutable) |
-| `email_context` | Plane 2 snapshot at send |
-| `email_analysis` | Plane 1 feature tags (AI or rules) |
-| `email_metrics` | Plane 4 outcomes (opens, clicks, conversion) |
+| `generation_batch` | Company, product, campaign, social proof assets |
+| `generated_email` | Subject, body, and full lever columns per variation |
 
-See [docs/PLANE_GUIDE.md](../docs/PLANE_GUIDE.md) for how these map to the plane model.
+**Setup (once):** run [`migrations/003_generated_emails.sql`](migrations/003_generated_emails.sql) in Supabase SQL Editor.
+
+**Import a batch:** from `email-lever-studio`, run `npm run import-batch -- output/<batch-folder>`, then run the generated `import-postgres.sql` in Supabase SQL Editor.
+
+## Sent / received emails (optional, later)
+
+| Table | Purpose |
+|-------|---------|
+| `contact`, `email_message`, `email_context`, `email_analysis`, `email_metrics` | Plane model for real sends and outcomes |
+
+Apply [`migrations/001_initial_schema.sql`](migrations/001_initial_schema.sql) and [`002_add_context.sql`](migrations/002_add_context.sql) when you need that layer.
+
+Full snapshot: [`schema.sql`](schema.sql).

@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
   Document,
@@ -11,13 +11,15 @@ import {
   TextRun,
   WidthType,
 } from 'docx'
-import { cloneLeverSuggestion, type EmailDraft, type LeverSuggestion, type SocialProofAssets } from '../shared/schema.ts'
+import { cloneLeverSuggestion, type EmailDraft, type LeverSuggestion } from '../shared/schema.ts'
 import { applyScenarioToLevers, type Scenario } from './scenarios.ts'
 
 export type BatchEmailRecord = {
   index: number
-  scenario: Scenario
-  levers: LeverSuggestion
+  scenario: Pick<Scenario, 'id' | 'label'>
+  levers?: LeverSuggestion
+  /** Precomputed lever rows (e.g. from manifest) — skips leverSummary(). */
+  leverRows?: Record<string, string>
   draft: EmailDraft
   style: string
 }
@@ -102,10 +104,9 @@ export async function exportBatchDocx(opts: {
   company: string
   product: string
   records: BatchEmailRecord[]
-  assets?: SocialProofAssets
   outPath: string
 }): Promise<void> {
-  const { title, company, product, records, assets, outPath } = opts
+  const { title, company, product, records, outPath } = opts
   const children: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.TITLE,
@@ -114,32 +115,8 @@ export async function exportBatchDocx(opts: {
     new Paragraph({
       children: [new TextRun({ text: `Company: ${company} | Product: ${product}`, size: 22 })],
     }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Generated: ${new Date().toISOString().split('T')[0]} | ${records.length} cold email variation(s)`,
-          size: 20,
-        }),
-      ],
-    }),
     new Paragraph({ text: '' }),
   ]
-
-  if (assets && Object.keys(assets).length > 0) {
-    children.push(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_2,
-        children: [new TextRun('Social Proof Assets Used')],
-      }),
-      ...Object.entries(assets).map(
-        ([k, v]) =>
-          new Paragraph({
-            children: [new TextRun({ text: `${k}: ${v ?? '—'}`, size: 20 })],
-          }),
-      ),
-      new Paragraph({ text: '' }),
-    )
-  }
 
   for (const record of records) {
     children.push(
@@ -149,7 +126,7 @@ export async function exportBatchDocx(opts: {
       }),
     )
 
-    const summary = leverSummary(record.levers)
+    const summary = record.leverRows ?? leverSummary(record.levers!)
     children.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
@@ -210,51 +187,101 @@ export function parseTxtEmail(txt: string): EmailDraft {
   }
 }
 
+type ManifestEmail = {
+  index: number
+  id: string
+  label: string
+  style: string
+  levers?: Record<string, string>
+}
+
+type ManifestScenario = {
+  id: string
+  label: string
+  style: string
+  file: string
+  levers?: Record<string, string>
+}
+
+async function resolveDocxOutPath(batchDir: string): Promise<string> {
+  const files = await readdir(batchDir)
+  const docxFiles = files.filter((f) => f.endsWith('.docx'))
+  if (docxFiles.length === 1) {
+    return resolve(batchDir, docxFiles[0]!)
+  }
+  return resolve(batchDir, 'cold_emails.docx')
+}
+
 /** Rebuild .docx from an existing batch folder (txt files + manifest). */
 export async function reexportBatchDocx(
   batchDir: string,
-  scenarios: Scenario[],
+  scenarios?: Scenario[],
 ): Promise<string> {
   const manifest = JSON.parse(
     await readFile(resolve(batchDir, 'manifest.json'), 'utf8'),
   ) as {
     company: string
     product: string
-    socialProofAssets?: SocialProofAssets
+    total?: number
+    emails?: ManifestEmail[]
+    scenarios?: ManifestScenario[]
   }
 
   const records: BatchEmailRecord[] = []
 
-  for (let i = 0; i < scenarios.length; i++) {
-    const idx = i + 1
-    const scenario = scenarios[i]!
-    const txtPath = resolve(
-      batchDir,
-      `${String(idx).padStart(2, '0')}-${scenario.id}.txt`,
-    )
-    try {
-      const txt = await readFile(txtPath, 'utf8')
-      const draft = parseTxtEmail(txt)
-      const levers = applyScenarioToLevers(cloneLeverSuggestion(), scenario.levers)
-      records.push({
-        index: idx,
-        scenario,
-        levers,
-        draft,
-        style: scenario.style,
-      })
-    } catch {
-      // skip missing
+  if (manifest.emails?.length) {
+    for (const email of manifest.emails) {
+      const txtPath = resolve(
+        batchDir,
+        `${String(email.index).padStart(2, '0')}-${email.id}.txt`,
+      )
+      try {
+        const txt = await readFile(txtPath, 'utf8')
+        const draft = parseTxtEmail(txt)
+        records.push({
+          index: email.index,
+          scenario: { id: email.id, label: email.label },
+          leverRows: email.levers,
+          draft,
+          style: email.style,
+        })
+      } catch {
+        // skip missing
+      }
+    }
+  } else if (scenarios?.length) {
+    for (let i = 0; i < scenarios.length; i++) {
+      const idx = i + 1
+      const scenario = scenarios[i]!
+      const manifestEntry = manifest.scenarios?.find((s) => s.id === scenario.id)
+      const txtPath = manifestEntry?.file
+        ? resolve(batchDir, manifestEntry.file)
+        : resolve(batchDir, `${String(idx).padStart(2, '0')}-${scenario.id}.txt`)
+      try {
+        const txt = await readFile(txtPath, 'utf8')
+        const draft = parseTxtEmail(txt)
+        const levers = applyScenarioToLevers(cloneLeverSuggestion(), scenario.levers)
+        records.push({
+          index: idx,
+          scenario,
+          levers,
+          leverRows: manifestEntry?.levers,
+          draft,
+          style: scenario.style,
+        })
+      } catch {
+        // skip missing
+      }
     }
   }
 
-  const docxPath = resolve(batchDir, 'cold_emails.docx')
+  const count = manifest.total ?? records.length
+  const docxPath = await resolveDocxOutPath(batchDir)
   await exportBatchDocx({
-    title: `${manifest.company} — Cold Email Variations`,
+    title: `${manifest.company} — ${count} Cold Email Variations`,
     company: manifest.company,
     product: manifest.product,
     records,
-    assets: manifest.socialProofAssets,
     outPath: docxPath,
   })
 

@@ -7,6 +7,7 @@
     "dev": "tsx watch server/index.ts",
     "generate": "tsx scripts/generate-email.ts",
     "batch": "tsx scripts/batch-generate.ts",
+    "import-batch": "tsx scripts/import-batch.ts",
     "lint": "oxlint"
   },
   "dependencies": {

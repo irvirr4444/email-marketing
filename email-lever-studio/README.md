@@ -2,7 +2,7 @@
 
 CLI + API tool for **cold-outreach email generation**. You provide company, product, campaign, and intent; Claude suggests levers and writes the draft. Optional social proof research runs first.
 
-No database, no auth, no browser UI.
+No browser UI. Optional Postgres import for batch tracking.
 
 ## Setup
 
@@ -25,6 +25,7 @@ npm run dev    # API at http://127.0.0.1:3001
 | `npm run dev` | Start Express API (required for all CLIs) |
 | `npm run generate` | One email — interactive or flags |
 | `npm run batch` | Many emails — curated, matrix, or 50 diverse lever combos |
+| `npm run import-batch` | Write `import-postgres.sql` for Supabase from a batch folder |
 | `npm run lint` | Oxlint |
 
 ## Generate one email
@@ -110,6 +111,23 @@ npm run batch -- --reexport-docx output/batch-2026-01-01T12-00-00-000Z
 - `manifest.json` — metadata, levers, social proof assets
 - `NNN-scenario-id.txt` — one file per email
 - `cold_emails.docx` — when `--docx` (lever table + subject + body per email)
+
+## Import to Supabase
+
+After generating a batch (`output/<folder>/` with `manifest.json` + `.txt` files):
+
+```bash
+# 1. Once: run db/migrations/003_generated_emails.sql in Supabase SQL Editor
+
+# 2. Generate import SQL from the batch folder
+npm run import-batch -- output/provence-50-2026-07-01T14-26-07-634Z
+
+# 3. Run output/<folder>/import-postgres.sql in Supabase SQL Editor
+```
+
+Writes `import-postgres.sql` with upserts for `generation_batch` + `generated_email`. Safe to re-run.
+
+See [`db/README.md`](../db/README.md).
 
 ## Pipeline (single generate)
 

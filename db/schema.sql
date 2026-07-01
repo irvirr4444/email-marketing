@@ -223,3 +223,101 @@ create table email_metrics (
 create index email_metrics_opened_idx on email_metrics (opened) where opened is true;
 create index email_metrics_clicked_idx on email_metrics (clicked) where clicked is true;
 create index email_metrics_converted_idx on email_metrics (goal_completed) where goal_completed is true;
+
+-- ---------------------------------------------------------------------------
+-- generation_batch — metadata for a batch of generated email variations
+-- ---------------------------------------------------------------------------
+create table generation_batch (
+  id              uuid primary key default gen_random_uuid(),
+  batch_id        text not null unique,  -- e.g. 'provence-50-2026-07-01T14-26-07-634Z'
+  
+  company         text not null,
+  product         text not null,
+  campaign        text,
+  
+  -- social proof assets used across the batch
+  social_proof_assets jsonb not null default '{}',
+  
+  total_generated integer not null default 0,
+  
+  created_at      timestamptz not null default now()
+);
+
+create index generation_batch_company_idx on generation_batch (company);
+create index generation_batch_created_idx on generation_batch (created_at);
+
+-- ---------------------------------------------------------------------------
+-- generated_email — AI-generated email template with full lever tracking
+-- ---------------------------------------------------------------------------
+create table generated_email (
+  id              uuid primary key default gen_random_uuid(),
+  batch_id        uuid not null references generation_batch(id) on delete cascade,
+  
+  -- scenario identification
+  scenario_id     text not null,           -- e.g. 'pb-01-pas-curiosity-kennedy'
+  scenario_label  text,                    -- e.g. '#1 PAS + curiosity + none + kennedy'
+  index_in_batch  integer not null,
+  
+  -- email content
+  subject         text not null,
+  preheader       text,
+  body            text not null,
+  
+  -- =========================================================================
+  -- PLANE 1 FEATURES — full lever tracking (no more stuffing in extras)
+  -- =========================================================================
+  
+  -- 1.2 Intent
+  intent          text not null,           -- get_reply, drive_purchase, click_to_page, etc.
+  
+  -- 1.3 Subject line
+  subject_type    text,                    -- question, statement, curiosity_gap, list, announcement
+  subject_length  text,                    -- short, medium, long
+  subject_casing  text,                    -- sentence, title, lowercase
+  
+  -- 1.4 Preheader
+  preheader_present   boolean not null default false,
+  preheader_length    text,                -- short, medium, long
+  preheader_relationship text,             -- complements, repeats
+  
+  -- 1.6 Body
+  body_length     text,                    -- short, medium, long
+  body_links      text,                    -- zero, one, two_plus
+  body_scannable  boolean,
+  
+  -- 1.7 Copy strategy
+  framework       text,                    -- PAS, AIDA, BAB, FAB, none
+  emotion         text,                    -- curiosity, fear, aspiration, humor, fomo, status, pain_relief
+  persuasion      text,                    -- reciprocity, authority, scarcity, liking, commitment, none
+  specificity     text,                    -- hard_numbers, vague
+  personalization_depth text,              -- generic, merge_field, segment_tailored, one_to_one_researched
+  writing_style   text,                    -- kennedy, ogilvy, kern, chaperon, none
+  
+  -- 1.7 Social proof
+  social_proof_type       text,            -- none, result, volume, peer, consensus, recency, quote, name_drop
+  social_proof_placement  text,            -- opener, body, pre_cta, ps
+  social_proof_specificity text,           -- vague, specific
+  
+  -- 1.8 CTA
+  cta_type        text,                    -- reply, buy, read, download, book
+  cta_style       text,                    -- plain_reply_ask, link, button
+  cta_placement   text,                    -- end, inline, both
+  cta_copy        text,
+  
+  -- 1.9 Offer
+  has_offer       boolean not null default false,
+  offer_type      text,                    -- percent_off, dollar_off, free_ship, trial, none
+  offer_magnitude text,                    -- e.g. '15% off first order'
+  
+  -- overflow for future levers
+  extras          jsonb not null default '{}',
+  
+  created_at      timestamptz not null default now(),
+  
+  unique (batch_id, scenario_id)
+);
+
+create index generated_email_batch_idx on generated_email (batch_id);
+create index generated_email_intent_idx on generated_email (intent);
+create index generated_email_framework_idx on generated_email (framework);
+create index generated_email_style_idx on generated_email (writing_style);
