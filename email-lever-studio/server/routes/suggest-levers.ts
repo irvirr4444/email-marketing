@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { openai, OPENAI_MODEL } from '../openai.js'
+import { completeStructuredJson } from '../anthropic.js'
 import {
   formatContextForPrompt,
   validateColdContext,
@@ -28,32 +28,13 @@ export async function suggestLeversHandler(
       return
     }
 
-    const completion = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        { role: 'system', content: SUGGEST_LEVERS_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: formatContextForPrompt(context),
-        },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'lever_suggestions',
-          strict: true,
-          schema: SUGGEST_LEVERS_JSON_SCHEMA,
-        },
-      },
+    const parsed = await completeStructuredJson({
+      system: SUGGEST_LEVERS_SYSTEM_PROMPT,
+      user: formatContextForPrompt(context),
+      toolName: 'lever_suggestions',
+      schema: SUGGEST_LEVERS_JSON_SCHEMA,
     })
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) {
-      res.status(500).json({ error: 'No response from AI.' })
-      return
-    }
-
-    const parsed = JSON.parse(content)
     const levers = mergeWithLocked(
       normalizeLeverSuggestion(parsed),
       existingLevers,

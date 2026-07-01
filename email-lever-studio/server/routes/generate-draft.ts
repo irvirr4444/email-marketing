@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { openai, OPENAI_MODEL } from '../openai.js'
+import { completeStructuredJson } from '../anthropic.js'
 import {
   formatContextForPrompt,
   formatLeversForPrompt,
@@ -19,9 +19,10 @@ export async function generateDraftHandler(
   res: Response,
 ): Promise<void> {
   try {
-    const { context, levers } = req.body as {
+    const { context, levers, style } = req.body as {
       context: ColdContext
       levers: LeverSuggestion
+      style?: string
     }
 
     const validationError = validateColdContext(context)
@@ -46,29 +47,17 @@ export async function generateDraftHandler(
       formatSocialProofInstructions(context, levers),
     ].join('\n')
 
-    const completion = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        { role: 'system', content: GENERATE_DRAFT_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'email_draft',
-          strict: true,
-          schema: GENERATE_DRAFT_JSON_SCHEMA,
-        },
-      },
-    })
+    const system = style
+      ? `${GENERATE_DRAFT_SYSTEM_PROMPT}\n\n${style}`
+      : GENERATE_DRAFT_SYSTEM_PROMPT
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) {
-      res.status(500).json({ error: 'No response from AI.' })
-      return
-    }
+    const draft = (await completeStructuredJson({
+      system,
+      user: userPrompt,
+      toolName: 'email_draft',
+      schema: GENERATE_DRAFT_JSON_SCHEMA,
+    })) as EmailDraft
 
-    const draft = JSON.parse(content) as EmailDraft
     if (!draft.preheader?.trim()) {
       delete draft.preheader
     }
