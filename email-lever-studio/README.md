@@ -1,8 +1,8 @@
 # Email Lever Studio
 
-CLI + API tool for **cold-outreach email generation**. You provide company, product, campaign, and intent; Claude suggests levers and writes the draft. Optional social proof research runs first.
+API + CLI + browser UI for **cold-outreach email generation**. You provide company, product, campaign, and intent; Claude suggests levers and writes the draft. Optional social proof research runs first. A contextual bandit ([`../bandit_mvp/`](../bandit_mvp/)) can pick the levers and learn from your feedback.
 
-No database, no auth, no browser UI.
+No auth. Database optional (only for real bandit outcomes).
 
 ## Setup
 
@@ -15,17 +15,35 @@ CLAUDE_API_KEY=sk-ant-...
 ```bash
 cd email-lever-studio
 npm install
-npm run dev    # API at http://127.0.0.1:3001
+npm run dev    # API + browser UI at http://127.0.0.1:3001
 ```
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start Express API (required for all CLIs) |
+| `npm run dev` | Start Express API + browser UI (required for all CLIs) |
+| `npm run bandit` | Start the Python contextual bandit service (http://127.0.0.1:8000) |
 | `npm run generate` | One email — interactive or flags |
 | `npm run batch` | Many emails — curated, matrix, or 50 diverse lever combos |
 | `npm run lint` | Oxlint |
+
+## Browser UI (self-learning bandit)
+
+Open `http://127.0.0.1:3001` after starting both the bandit service and the API:
+
+```bash
+npm run bandit   # terminal 1 — bandit service on :8000
+npm run dev      # terminal 2 — API + UI on :3001
+```
+
+Flow: enter context -> **Pick levers** (the bandit chooses a recipe on the real lever
+taxonomy and returns its propensity) -> **Render this email** (existing `/api/generate-draft`)
+-> thumbs up/down or outcome events feed `/api/bandit/learn`, which trains the policy. See
+[`../bandit_mvp/README.md`](../bandit_mvp/README.md) for the reward/DB swap point.
+
+Node routes: `POST /api/bandit/pick`, `POST /api/bandit/learn`, `GET /api/bandit/recovery`
+proxy to the Python service (`BANDIT_URL`, default `http://127.0.0.1:8000`).
 
 ## Generate one email
 

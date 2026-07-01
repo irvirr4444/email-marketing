@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Email Lever Bandit</title>
+    <style>
+      :root {
+        --bg: #0f1216;
+        --panel: #171b21;
+        --panel-2: #1f242c;
+        --border: #2a313b;
+        --text: #e6e9ee;
+        --muted: #9aa4b2;
+        --accent: #6ea8fe;
+        --good: #4ade80;
+        --bad: #f87171;
+        --radius: 12px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+      }
+      header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+      header .sub { color: var(--muted); font-size: 13px; }
+      .wrap {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 20px;
+        padding: 20px 28px;
+        align-items: start;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+      }
+      .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 14px; }
+      label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+      input, select, textarea {
+        width: 100%;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font: inherit;
+      }
+      textarea { resize: vertical; min-height: 64px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      button {
+        background: var(--accent);
+        color: #0b1220;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+      .stack { display: flex; flex-direction: column; gap: 20px; }
+      .muted { color: var(--muted); }
+      .pill {
+        display: inline-flex; gap: 6px; align-items: center;
+        background: var(--panel-2); border: 1px solid var(--border);
+        border-radius: 999px; padding: 3px 10px; font-size: 12px; margin: 3px 4px 0 0;
+      }
+      .pill b { color: var(--accent); font-weight: 600; }
+      .levers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .lever-group h3 { font-size: 12px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+      .email {
+        background: #fff; color: #14181d; border-radius: 10px; padding: 18px; margin-top: 6px;
+        white-space: pre-wrap; font: 14px/1.6 ui-serif, Georgia, serif;
+      }
+      .email .subject { font-weight: 700; font-size: 16px; margin-bottom: 2px; font-family: -apple-system, sans-serif; }
+      .email .preheader { color: #6b7280; font-size: 13px; margin-bottom: 12px; font-family: -apple-system, sans-serif; }
+      .feedback { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+      .events { display: flex; gap: 14px; flex-wrap: wrap; margin: 8px 0; }
+      .events label { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--text); }
+      .events input { width: auto; }
+      .up { background: var(--good); }
+      .down { background: var(--bad); color: #fff; }
+      .status { font-size: 13px; margin-top: 10px; min-height: 18px; }
+      .status.ok { color: var(--good); }
+      .status.err { color: var(--bad); }
+      .recovery-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+      .recovery-row .top { color: var(--text); }
+      .hidden { display: none; }
+      code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Email Lever Bandit</h1>
+      <span class="sub">context &rarr; bandit picks levers &rarr; Claude renders &rarr; your feedback trains it</span>
+    </header>
+
+    <div class="wrap">
+      <!-- LEFT: context -->
+      <div class="panel">
+        <h2>Context</h2>
+        <div class="row">
+          <div>
+            <label>Recipient name</label>
+            <input id="recipientName" value="there" />
+          </div>
+          <div>
+            <label>Recipient email</label>
+            <input id="recipientEmail" value="prospect@example.com" />
+          </div>
+        </div>
+        <label>Company</label>
+        <input id="company" value="Provence Beauty" />
+        <label>Product</label>
+        <textarea id="product">Dew Beaucoup Peptide Plumping Serum. Copper peptides, hyaluronic acid, $22.99.</textarea>
+        <label>Campaign</label>
+        <input id="campaign" value="Cold D2C first touch" />
+        <div class="row">
+          <div>
+            <label>Intent</label>
+            <select id="intent">
+              <option value="drive_purchase">Drive purchase</option>
+              <option value="get_reply">Get reply</option>
+              <option value="book_meeting">Book meeting</option>
+              <option value="click_to_page">Click to page</option>
+              <option value="collect_info">Collect info</option>
+              <option value="referral">Referral</option>
+            </select>
+          </div>
+          <div>
+            <label>Relationship (segment)</label>
+            <select id="segment">
+              <option value="cold_prospect">Cold prospect</option>
+              <option value="warm_lead">Warm lead</option>
+              <option value="trial_active">Trial active</option>
+              <option value="trial_expiring">Trial expiring</option>
+              <option value="first_time_buyer">First-time buyer</option>
+              <option value="repeat">Repeat</option>
+              <option value="vip">VIP</option>
+              <option value="churned">Churned</option>
+              <option value="win_back">Win-back</option>
+              <option value="referral_source">Referral source</option>
+              <option value="partner_affiliate">Partner / affiliate</option>
+              <option value="investor_advisor">Investor / advisor</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Industry</label>
+            <select id="industry">
+              <option value="ecommerce">E-commerce</option>
+              <option value="saas">SaaS</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="finance">Finance</option>
+              <option value="education">Education</option>
+              <option value="agency">Agency</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Seniority</label>
+            <select id="seniority">
+              <option value="ic">IC</option>
+              <option value="manager">Manager</option>
+              <option value="director">Director</option>
+              <option value="exec">VP / C-level</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="pickBtn">Pick levers</button>
+          <button id="recoveryBtn" class="secondary">Show what it learned</button>
+        </div>
+        <div id="pickStatus" class="status"></div>
+      </div>
+
+      <!-- RIGHT: results -->
+      <div class="stack">
+        <div id="leversPanel" class="panel hidden">
+          <h2>Chosen lever recipe</h2>
+          <div id="pickMeta" class="muted" style="margin-bottom:12px"></div>
+          <div id="leversGrid" class="levers-grid"></div>
+          <div class="actions">
+            <button id="renderBtn">Render this email</button>
+          </div>
+          <div id="renderStatus" class="status"></div>
+        </div>
+
+        <div id="emailPanel" class="panel hidden">
+          <h2>Rendered email</h2>
+          <div id="email" class="email"></div>
+
+          <div class="feedback">
+            <span class="muted">Quick feedback:</span>
+            <button id="thumbUp" class="up">Good &#128077;</button>
+            <button id="thumbDown" class="down">Bad &#128078;</button>
+          </div>
+
+          <div style="margin-top:14px">
+            <span class="muted">Or record real-style outcome events:</span>
+            <div class="events">
+              <label><input type="checkbox" id="ev_opened" /> Opened</label>
+              <label><input type="checkbox" id="ev_clicked" /> Clicked</label>
+              <label><input type="checkbox" id="ev_ordered" /> Ordered</label>
+              <label><input type="checkbox" id="ev_complained" /> Complained</label>
+            </div>
+            <button id="recordBtn" class="secondary">Record outcome &amp; learn</button>
+          </div>
+          <div id="learnStatus" class="status"></div>
+        </div>
+
+        <div id="recoveryPanel" class="panel hidden">
+          <h2>What the policy learned</h2>
+          <div class="muted" style="margin-bottom:10px">
+            Top lever values the greedy policy exploits toward. Expectation:
+            framework favours <code>aida</code>, sp_specificity favours <code>specific</code>,
+            specificity favours <code>hard_numbers</code>, persuasion AVOIDS <code>scarcity</code>.
+          </div>
+          <div id="recoveryBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
