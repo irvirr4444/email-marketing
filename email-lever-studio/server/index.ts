@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { suggestLeversHandler } from './routes/suggest-levers.js'
 import { generateDraftHandler } from './routes/generate-draft.js'
+import { researchSocialProofHandler } from './routes/research-social-proof.js'
 
 const app = express()
 const PORT = 3001
@@ -16,6 +17,7 @@ app.get('/api/health', (_req, res) => {
 
 app.post('/api/suggest-levers', suggestLeversHandler)
 app.post('/api/generate-draft', generateDraftHandler)
+app.post('/api/research-social-proof', researchSocialProofHandler)
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`API server running on http://${HOST}:${PORT}`)

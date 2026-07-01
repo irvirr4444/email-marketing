@@ -1,12 +1,13 @@
-# Email Lever Studio — CLI
+# Email Lever Studio
 
-Cold-outreach email generator powered by Plane 1 (feature levers) and Plane 2 (context). No database, no auth, no browser UI — API server + CLI only.
+CLI + API tool for **cold-outreach email generation**. You provide company, product, campaign, and intent; Claude suggests levers and writes the draft. Optional social proof research runs first.
+
+No database, no auth, no browser UI.
 
 ## Setup
 
-Add to the repo root `.env` (or `email-lever-studio/.env`):
-
-```
+```bash
+# API key — repo root .env or email-lever-studio/.env
 CLAUDE_API_KEY=sk-ant-...
 # optional: CLAUDE_MODEL=claude-sonnet-5
 ```
@@ -14,46 +15,124 @@ CLAUDE_API_KEY=sk-ant-...
 ```bash
 cd email-lever-studio
 npm install
-npm run dev
+npm run dev    # API at http://127.0.0.1:3001
 ```
 
-API runs at `http://127.0.0.1:3001`.
+## Commands
 
-## Generate an email
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start Express API (required for all CLIs) |
+| `npm run generate` | One email — interactive or flags |
+| `npm run batch` | Many emails — curated, matrix, or 50 diverse lever combos |
+| `npm run lint` | Oxlint |
 
-In a second terminal:
+## Generate one email
 
 ```bash
-# Interactive prompts
-npm run generate
-
-# Inline args
 npm run generate -- \
-  --company "Acme Corp" \
-  --product "A B2B SaaS tool that automates invoice reconciliation for finance teams" \
-  --campaign "Q3 outbound" \
-  --intent get_reply \
-  --style kern
+  --company "Provence Beauty" \
+  --product "Dew Beaucoup Peptide Plumping Serum — copper peptides, hyaluronic acid, $22.99" \
+  --campaign "Cold D2C first-touch" \
+  --intent drive_purchase \
+  --style ogilvy
 ```
 
-**Required flags:** `--company`, `--product`, `--campaign`, `--intent`
+**Required:** `--company`, `--product`, `--campaign`, `--intent`
 
-**Optional:** `--style` (`kennedy`, `ogilvy`, `kern`, `chaperon`), `--no-file` (skip writing `output/draft-*.txt`)
+**Optional:**
 
-## Flow
+| Flag | Purpose |
+|------|---------|
+| `--style` | `kennedy`, `ogilvy`, `kern`, `chaperon` |
+| `--no-file` | Skip writing `output/draft-*.txt` |
+| `--research` | Mine social proof from product description |
+| `--research-layers` | `ingredient,origin,industry,behavioral,expert,direct,company` |
+| `--research-tone` | `clinical`, `mass_market`, `luxury`, `casual` |
+| `--research-depth` | `quick`, `full`, `fused` |
+| `--social-proof-result` etc. | Pass proof assets directly (see below) |
 
-1. CLI builds minimal `ColdContext` (company, campaign + product in notes, cold-prospect defaults).
-2. `POST /api/suggest-levers` — AI picks all style levers from defaults.
-3. CLI overrides `intent` with your `--intent` value.
-4. `POST /api/generate-draft` — AI writes subject + body (optional writing style appended to system prompt).
+### Social proof
 
-## Architecture
+Two-stage pipeline:
+
+1. **Research** (optional) — `POST /api/research-social-proof` fills `SocialProofAssets`
+2. **Generate** — levers pick how proof is used (`type`, `placement`, `specificity`)
+
+```bash
+# Research + generate
+npm run generate -- \
+  --company "Acme" --product "..." --campaign "..." --intent get_reply \
+  --research --research-layers ingredient,expert --research-tone clinical
+
+# Or pass assets directly
+npm run generate -- \
+  --company "Acme" --product "..." --campaign "..." --intent get_reply \
+  --social-proof-result "60% faster close" \
+  --social-proof-customer "Stripe, Notion"
+```
+
+## Batch generate
+
+Runs scenarios through `generate-draft` (levers set per scenario; no `suggest-levers`). Output: `output/batch-{timestamp}/`.
+
+```bash
+# 12 curated scenarios (framework × emotion × author style)
+npm run batch -- --company "Acme" --product "..." --campaign "Q3"
+
+# 50 diverse lever combinations + Word export
+npm run batch -- \
+  --company "Provence Beauty" \
+  --product "Dew Beaucoup Peptide Serum..." \
+  --campaign "Cold D2C" \
+  --diverse50 --docx --research
+
+# Framework × emotion × style grid (80 combos)
+npm run batch -- --company "Acme" --product "..." --campaign "Q3" --matrix --limit 20
+
+# List scenarios without generating
+npm run batch -- --list --diverse50
+
+# Rebuild .docx after editing txt files (paragraph spacing preserved)
+npm run batch -- --reexport-docx output/batch-2026-01-01T12-00-00-000Z
+```
+
+**Scenario sets:**
+
+| Flag | Count | Coverage |
+|------|-------|----------|
+| (default) | 12 | Curated cold-outreach pairings |
+| `--matrix` | 80 | Framework × emotion × style |
+| `--diverse50` | 50 | Broad lever coverage (subject, CTA, social proof, body length, etc.) |
+
+**Batch output:**
+
+- `manifest.json` — metadata, levers, social proof assets
+- `NNN-scenario-id.txt` — one file per email
+- `cold_emails.docx` — when `--docx` (lever table + subject + body per email)
+
+## Pipeline (single generate)
+
+```
+CLI inputs
+  → [optional] POST /api/research-social-proof
+  → POST /api/suggest-levers
+  → CLI overrides intent
+  → POST /api/generate-draft
+  → stdout + output/draft-*.txt
+```
+
+## Project layout
 
 | Path | Role |
 |------|------|
-| `shared/schema.ts` | Types, lever defaults, OpenAI-compatible JSON schemas |
-| `server/` | Express API, Claude client, prompts |
-| `scripts/generate-email.ts` | CLI entrypoint |
-| `scripts/writing-styles.ts` | Kennedy, Ogilvy, Kern, Chaperon style blocks |
+| [`shared/`](shared/) | Types, defaults, lever writing definitions |
+| [`server/`](server/) | Express API + Claude client |
+| [`scripts/`](scripts/) | CLI entrypoints |
+| [`output/`](output/) | Generated drafts (gitignored) |
 
-See [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for lever reference and API details.
+## Documentation
+
+- **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)** — full lever reference, API details, social proof pipeline
+- **[scripts/README.md](scripts/README.md)** — what each CLI script does
+- Repo root [`levers_scenarios.MD`](../levers_scenarios.MD) — human-readable lever spec

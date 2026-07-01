@@ -1,12 +1,8 @@
 import type { Request, Response } from 'express'
 import { completeStructuredJson } from '../anthropic.js'
-import {
-  formatContextForPrompt,
-  formatLeversForPrompt,
-  formatSocialProofInstructions,
-  validateColdContext,
-} from '../levers.js'
+import { formatContextForPrompt, validateColdContext } from '../levers.js'
 import { GENERATE_DRAFT_SYSTEM_PROMPT } from '../prompts.js'
+import { buildLeverInstructions } from '../../shared/lever-definitions.ts'
 import {
   GENERATE_DRAFT_JSON_SCHEMA,
   type ColdContext,
@@ -40,11 +36,7 @@ export async function generateDraftHandler(
       '## Context',
       formatContextForPrompt(context),
       '',
-      '## Lever settings',
-      formatLeversForPrompt(levers),
-      '',
-      '## Social proof instructions',
-      formatSocialProofInstructions(context, levers),
+      buildLeverInstructions(levers, context),
     ].join('\n')
 
     const system = style

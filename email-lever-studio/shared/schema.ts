@@ -1,4 +1,4 @@
-// Single source of truth for ColdContext, lever taxonomy, defaults, and OpenAI JSON schema.
+// Single source of truth for ColdContext, lever taxonomy, defaults, and Claude JSON schemas.
 
 export const CUSTOMER_SEGMENT_OPTIONS = [
   'cold_prospect',
@@ -42,6 +42,37 @@ export type SocialProofAssets = {
   customerQuote?: string
   customerCount?: string
   recentWin?: string
+}
+
+export const RESEARCH_LAYER_OPTIONS = [
+  'ingredient',
+  'origin',
+  'industry',
+  'behavioral',
+  'expert',
+  'direct',
+  'company',
+] as const
+
+export type ResearchLayer = (typeof RESEARCH_LAYER_OPTIONS)[number]
+
+export const RESEARCH_TONE_OPTIONS = [
+  'clinical',
+  'mass_market',
+  'luxury',
+  'casual',
+] as const
+
+export type ResearchTone = (typeof RESEARCH_TONE_OPTIONS)[number]
+
+export const RESEARCH_DEPTH_OPTIONS = ['quick', 'full', 'fused'] as const
+
+export type ResearchDepth = (typeof RESEARCH_DEPTH_OPTIONS)[number]
+
+export type SocialProofResearchConfig = {
+  layers: ResearchLayer[]
+  tone: ResearchTone
+  depth: ResearchDepth
 }
 
 export type ColdContext = {
@@ -817,7 +848,7 @@ export function normalizeLeverSuggestion(raw: RawSuggestion): LeverSuggestion {
   }
 }
 
-// --- OpenAI JSON schema (generated) ---
+// --- Claude JSON schema (tool-use) ---
 
 function enumSchema(values: string[]) {
   return { type: 'string', enum: values }
@@ -951,6 +982,73 @@ export const GENERATE_DRAFT_JSON_SCHEMA = {
   required: ['subject', 'preheader', 'body'],
   additionalProperties: false,
 } as const
+
+export const RESEARCH_SOCIAL_PROOF_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    recognizableCustomer: { type: 'string' },
+    specificResult: { type: 'string' },
+    customerQuote: { type: 'string' },
+    customerCount: { type: 'string' },
+    recentWin: { type: 'string' },
+  },
+  required: [
+    'recognizableCustomer',
+    'specificResult',
+    'customerQuote',
+    'customerCount',
+    'recentWin',
+  ],
+  additionalProperties: false,
+} as const
+
+export function normalizeSocialProofAssets(
+  raw: Record<string, unknown>,
+): SocialProofAssets {
+  const pick = (key: keyof SocialProofAssets): string | undefined => {
+    const value = raw[key]
+    if (typeof value !== 'string') return undefined
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : undefined
+  }
+
+  return {
+    recognizableCustomer: pick('recognizableCustomer'),
+    specificResult: pick('specificResult'),
+    customerQuote: pick('customerQuote'),
+    customerCount: pick('customerCount'),
+    recentWin: pick('recentWin'),
+  }
+}
+
+export function normalizeResearchConfig(
+  raw: Partial<SocialProofResearchConfig>,
+): SocialProofResearchConfig | string {
+  const layers = Array.isArray(raw.layers)
+    ? raw.layers.filter((layer): layer is ResearchLayer =>
+        typeof layer === 'string' &&
+        (RESEARCH_LAYER_OPTIONS as readonly string[]).includes(layer),
+      )
+    : []
+
+  if (layers.length === 0) {
+    return 'At least one research layer is required.'
+  }
+
+  const tone =
+    typeof raw.tone === 'string' &&
+    (RESEARCH_TONE_OPTIONS as readonly string[]).includes(raw.tone)
+      ? (raw.tone as ResearchTone)
+      : 'clinical'
+
+  const depth =
+    typeof raw.depth === 'string' &&
+    (RESEARCH_DEPTH_OPTIONS as readonly string[]).includes(raw.depth)
+      ? (raw.depth as ResearchDepth)
+      : 'quick'
+
+  return { layers, tone, depth }
+}
 
 export function cloneLeverSuggestion(
   source: LeverSuggestion = DEFAULT_LEVER_SUGGESTION,

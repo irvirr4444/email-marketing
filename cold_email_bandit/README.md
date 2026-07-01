@@ -1,7 +1,8 @@
 # Cold Email Bandit
 
-A self-learning cold-email agent that gets measurably better at choosing high-converting
-email **recipes** on every iteration. It learns with a [Vowpal Wabbit](https://vowpalwabbit.org/)
+Self-learning cold-email agent (Python) that gets measurably better at choosing high-converting email **recipes** on every iteration. See the [monorepo README](../README.md) for how this relates to `email-lever-studio` and `db/`.
+
+It learns with a [Vowpal Wabbit](https://vowpalwabbit.org/)
 contextual bandit (CB-ADF), renders chosen recipes into copy with an LLM (optional), and
 **validates its own learning** inside a synthetic environment with a hidden ground-truth
 reward model whose planted truths it must rediscover.

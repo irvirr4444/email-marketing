@@ -2,23 +2,27 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import {
   cloneLeverSuggestion,
   INTENT_OPTIONS,
-  type ColdContext,
   type EmailDraft,
   type IntentValue,
   type LeverSuggestion,
 } from '../shared/schema.ts'
 import { resolveStyle, type StyleKey } from './writing-styles.ts'
+import {
+  buildContext,
+  checkServer,
+  CLI_FLAG_ALIASES,
+  formatOutput,
+  OUTPUT_DIR,
+  postJson,
+  resolveSocialProofAssets,
+  type ResearchCliOptions,
+} from './lib.ts'
 
-const API_BASE = 'http://127.0.0.1:3001'
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const OUTPUT_DIR = resolve(__dirname, '../output')
-
-type CliArgs = {
+type CliArgs = ResearchCliOptions & {
   company?: string
   product?: string
   campaign?: string
@@ -27,8 +31,10 @@ type CliArgs = {
   noFile: boolean
 }
 
+const FLAG_ALIASES = CLI_FLAG_ALIASES as Record<string, keyof ResearchCliOptions | keyof CliArgs>
+
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { noFile: false }
+  const args: CliArgs = { noFile: false, research: false }
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
@@ -36,8 +42,13 @@ function parseArgs(argv: string[]): CliArgs {
       args.noFile = true
       continue
     }
+    if (arg === '--research') {
+      args.research = true
+      continue
+    }
     if (arg.startsWith('--')) {
-      const key = arg.slice(2) as keyof CliArgs
+      const rawKey = arg.slice(2)
+      const key = (FLAG_ALIASES[rawKey] ?? rawKey) as keyof CliArgs
       const value = argv[++i]
       if (value && !value.startsWith('--')) {
         ;(args as Record<string, string | boolean>)[key] = value
@@ -55,6 +66,10 @@ async function promptMissing(args: CliArgs): Promise<{
   intent: IntentValue
   styleKey?: StyleKey
   noFile: boolean
+  research: boolean
+  researchLayers?: string
+  researchTone?: string
+  researchDepth?: string
 }> {
   const rl = createInterface({ input, output })
 
@@ -81,6 +96,37 @@ async function promptMissing(args: CliArgs): Promise<{
     ).trim()
   }
 
+  let research = args.research
+  if (!research && !args.socialProofResult && !args.socialProofCustomer) {
+    const researchAnswer = (
+      await rl.question('Research social proof? (y/N): ')
+    ).trim()
+    research = researchAnswer.toLowerCase() === 'y'
+  }
+
+  let researchLayers = args.researchLayers
+  let researchTone = args.researchTone
+  let researchDepth = args.researchDepth
+  if (research) {
+    if (!researchLayers) {
+      researchLayers = (
+        await rl.question(
+          'Research layers (ingredient,origin,industry,behavioral,expert,direct,company): ',
+        )
+      ).trim()
+    }
+    if (!researchTone) {
+      researchTone = (
+        await rl.question('Research tone (clinical|mass_market|luxury|casual): ')
+      ).trim()
+    }
+    if (!researchDepth) {
+      researchDepth = (
+        await rl.question('Research depth (quick|full|fused): ')
+      ).trim()
+    }
+  }
+
   rl.close()
 
   const validIntents = INTENT_OPTIONS.map((o) => o.value)
@@ -100,82 +146,11 @@ async function promptMissing(args: CliArgs): Promise<{
     intent: intent as IntentValue,
     styleKey: style?.key,
     noFile: args.noFile,
+    research,
+    researchLayers,
+    researchTone,
+    researchDepth,
   }
-}
-
-async function checkServer(): Promise<void> {
-  try {
-    const res = await fetch(`${API_BASE}/api/health`)
-    if (!res.ok) throw new Error('not ok')
-  } catch {
-    console.error('Server not running — start with npm run dev first.')
-    process.exit(1)
-  }
-}
-
-async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  const data = (await res.json()) as T & { error?: string }
-  if (!res.ok) {
-    throw new Error(data.error ?? 'Request failed')
-  }
-  return data
-}
-
-function buildContext(
-  company: string,
-  campaign: string,
-  product: string,
-): ColdContext {
-  return {
-    recipientName: 'there',
-    recipientEmail: 'prospect@example.com',
-    companyName: company,
-    segmentAtSend: 'cold_prospect',
-    sequenceNumber: 1,
-    notes: `Campaign: ${campaign}\n\n${product}`,
-  }
-}
-
-function formatOutput(
-  draft: EmailDraft,
-  levers: LeverSuggestion,
-  styleLabel: string,
-): string {
-  const lines = [
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-    `SUBJECT:    ${draft.subject}`,
-  ]
-
-  if (draft.preheader?.trim()) {
-    lines.push(`PREHEADER:  ${draft.preheader}`)
-  }
-
-  lines.push(
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-    '',
-    draft.body,
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-    'LEVERS USED:',
-    `  Intent:          ${levers.intent.value}`,
-    `  Framework:       ${levers.copyStrategy.values.framework}`,
-    `  Emotion:         ${levers.copyStrategy.values.emotion}`,
-    `  Persuasion:      ${levers.copyStrategy.values.persuasion}`,
-    `  Body length:     ${levers.body.values.length}`,
-    `  Personalization: ${levers.copyStrategy.values.personalizationDepth}`,
-    `  Social proof:    ${levers.socialProof.values.type}`,
-    `  CTA type:        ${levers.cta.values.type}`,
-    `  Style:           ${styleLabel}`,
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-  )
-
-  return lines.join('\n')
 }
 
 async function main() {
@@ -186,6 +161,17 @@ async function main() {
   let campaign = rawArgs.campaign?.trim()
   let intent = rawArgs.intent?.trim()
   let styleResolved = rawArgs.style ? resolveStyle(rawArgs.style) : undefined
+  let researchOpts: ResearchCliOptions = {
+    research: rawArgs.research,
+    researchLayers: rawArgs.researchLayers,
+    researchTone: rawArgs.researchTone,
+    researchDepth: rawArgs.researchDepth,
+    socialProofResult: rawArgs.socialProofResult,
+    socialProofCustomer: rawArgs.socialProofCustomer,
+    socialProofQuote: rawArgs.socialProofQuote,
+    socialProofCount: rawArgs.socialProofCount,
+    socialProofWin: rawArgs.socialProofWin,
+  }
 
   if (!company || !product || !campaign || !intent) {
     const prompted = await promptMissing(rawArgs)
@@ -197,6 +183,13 @@ async function main() {
       ? resolveStyle(prompted.styleKey)
       : undefined
     rawArgs.noFile = prompted.noFile
+    researchOpts = {
+      ...researchOpts,
+      research: prompted.research,
+      researchLayers: prompted.researchLayers,
+      researchTone: prompted.researchTone,
+      researchDepth: prompted.researchDepth,
+    }
   } else {
     const validIntents = INTENT_OPTIONS.map((o) => o.value)
     if (!validIntents.includes(intent as IntentValue)) {
@@ -209,7 +202,8 @@ async function main() {
 
   await checkServer()
 
-  const context = buildContext(company!, campaign!, product!)
+  const socialProofAssets = await resolveSocialProofAssets(product!, researchOpts)
+  const context = buildContext(company!, campaign!, product!, socialProofAssets)
 
   console.error('Suggesting levers…')
   const levers = await postJson<LeverSuggestion>('/api/suggest-levers', {
