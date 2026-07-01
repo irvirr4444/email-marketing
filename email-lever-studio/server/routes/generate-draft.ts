@@ -3,6 +3,7 @@ import { openai, OPENAI_MODEL } from '../openai.js'
 import {
   formatContextForPrompt,
   formatLeversForPrompt,
+  formatSocialProofInstructions,
   validateColdContext,
 } from '../levers.js'
 import { GENERATE_DRAFT_SYSTEM_PROMPT } from '../prompts.js'
@@ -40,6 +41,9 @@ export async function generateDraftHandler(
       '',
       '## Lever settings',
       formatLeversForPrompt(levers),
+      '',
+      '## Social proof instructions',
+      formatSocialProofInstructions(context, levers),
     ].join('\n')
 
     const completion = await openai.chat.completions.create({

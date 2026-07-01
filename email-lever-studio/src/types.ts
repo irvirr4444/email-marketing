@@ -6,6 +6,10 @@ export type {
   IntentValue,
   IntentLever,
   CustomerSegment,
+  SocialProofType,
+  SocialProofPlacement,
+  SocialProofValues,
+  SocialProofAssets,
 } from '../shared/schema.ts'
 
 export {

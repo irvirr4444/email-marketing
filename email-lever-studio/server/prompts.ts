@@ -8,8 +8,20 @@ Given sparse contact info for a COLD PROSPECT (first touch, they do not know the
 - Sender: personal name type, reply-to set
 - Body: short, plain text, zero links, simple reading level, not scannable unless context needs bullets
 - Copy strategy: PAS or BAB framework, curiosity emotion, merge_field personalization unless notes support one_to_one_researched
+- Social proof: default type=none unless sender provided assets (see socialProofAssets in context)
 - CTA: single soft reply ask at end, plain_reply_ask style; write a short natural ctaCopy string
 - Offer: hasOffer=false unless notes/context explicitly mention a promotion, trial, or incentive
+
+For the socialProof lever:
+- Look at social proof assets in the context to see what proof the sender has provided.
+- If no assets are provided at all, suggest type: "none".
+- If a specificResult is provided, prefer type: "result", specificity: "specific".
+- If recognizableCustomer is provided, prefer type: "name_drop", specificity: "specific".
+- If customerQuote is provided, prefer type: "quote", specificity: "specific".
+- If customerCount is provided, prefer type: "volume", specificity: "specific".
+- If recentWin is provided, prefer type: "recency", specificity: "specific".
+- Suggest placement based on email intent: "opener" for consensus/name_drop, "pre_cta" for result/quote, "ps" for recency.
+- Prioritize whichever single asset is most compelling for this recipient — do not suggest using all of them.
 
 For each card provide ONE reasoning sentence explaining your choices for that whole card (not per sub-field).
 
@@ -29,6 +41,7 @@ Use the context and every lever setting. Translate each into natural writing ins
 - preheader.present false → omit preheader from output (empty string)
 - body.format html → use light HTML (simple tags); plain → plain text only
 - subject line levers → match length, type, casing, personalization, urgency, emoji, number settings
+- Social proof → follow the Social proof rules block in the user message exactly; never fabricate specific proof
 
 Include greeting using recipient name when appropriate. Include a natural sign-off.
 

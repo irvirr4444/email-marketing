@@ -1,16 +1,19 @@
 import { useState, type ReactNode } from 'react'
-import type { CardKey, LeverSuggestion } from '../types'
+import type { CardKey, ColdContext, LeverSuggestion } from '../types'
 import { CARD_DEFINITIONS } from '../types'
 import { MaterialIcon } from './MaterialIcon'
+import { SocialProofAssets } from './SocialProofAssets'
 import { getCardValues, StyleField } from './StyleField'
 import { StyleGroupCard, type CardVariant } from './StyleGroupCard'
 
 type StyleSectionProps = {
+  context: ColdContext
   levers: LeverSuggestion
   leversSuggested: boolean
   canSuggest: boolean
   loadingLevers: boolean
   loadingDraft: boolean
+  onContextChange: (context: ColdContext) => void
   onLeversChange: (levers: LeverSuggestion) => void
   onSuggestLevers: () => void
 }
@@ -39,11 +42,13 @@ function StyleRow({ label, columns = 1, children }: StyleRowProps) {
 }
 
 export function StyleSection({
+  context,
   levers,
   leversSuggested,
   canSuggest,
   loadingLevers,
   loadingDraft,
+  onContextChange,
   onLeversChange,
   onSuggestLevers,
 }: StyleSectionProps) {
@@ -182,6 +187,14 @@ export function StyleSection({
 
         <StyleRow label="Persuasion">
           {renderCard('copyStrategy', 'supporting')}
+        </StyleRow>
+
+        <StyleRow label="Proof">
+          <SocialProofAssets
+            context={context}
+            disabled={disabled}
+            onChange={onContextChange}
+          />
         </StyleRow>
 
         <StyleRow label="Action" columns={2}>

@@ -36,6 +36,14 @@ export function labelForSegment(value: CustomerSegment): string {
   return SEGMENT_LABELS[value] ?? value
 }
 
+export type SocialProofAssets = {
+  recognizableCustomer?: string
+  specificResult?: string
+  customerQuote?: string
+  customerCount?: string
+  recentWin?: string
+}
+
 export type ColdContext = {
   recipientName: string
   recipientEmail: string
@@ -47,6 +55,7 @@ export type ColdContext = {
   country?: string
   language?: string
   notes?: string
+  socialProofAssets?: SocialProofAssets
   segmentAtSend: CustomerSegment | ''
   sequenceNumber: 1
 }
@@ -92,7 +101,6 @@ export type CopyStrategyValues = {
   framework: 'AIDA' | 'PAS' | 'BAB' | 'FAB' | 'none'
   persuasion:
     | 'reciprocity'
-    | 'social_proof'
     | 'authority'
     | 'scarcity'
     | 'liking'
@@ -134,6 +142,24 @@ export type OfferValues = {
   scarcity: 'none' | 'time_limited' | 'quantity_limited'
 }
 
+export type SocialProofType =
+  | 'none'
+  | 'volume'
+  | 'name_drop'
+  | 'peer'
+  | 'result'
+  | 'quote'
+  | 'recency'
+  | 'consensus'
+
+export type SocialProofPlacement = 'opener' | 'body' | 'pre_cta' | 'ps'
+
+export type SocialProofValues = {
+  type: SocialProofType
+  placement: SocialProofPlacement
+  specificity: 'vague' | 'specific'
+}
+
 export type LeverCardBase = {
   reasoning: string
   locked: boolean
@@ -150,6 +176,7 @@ export type LeverSuggestion = {
   sender: LeverCardBase & { values: SenderValues }
   body: LeverCardBase & { values: BodyValues }
   copyStrategy: LeverCardBase & { values: CopyStrategyValues }
+  socialProof: LeverCardBase & { values: SocialProofValues }
   cta: LeverCardBase & { values: CtaValues; ctaCopy: string }
   offer: LeverCardBase & { values: OfferValues }
 }
@@ -350,7 +377,6 @@ export const CARD_DEFINITIONS: CardDef[] = [
         type: 'segmented',
         options: [
           { value: 'reciprocity', label: 'Reciprocity' },
-          { value: 'social_proof', label: 'Social Proof' },
           { value: 'authority', label: 'Authority' },
           { value: 'scarcity', label: 'Scarcity' },
           { value: 'liking', label: 'Liking' },
@@ -390,6 +416,48 @@ export const CARD_DEFINITIONS: CardDef[] = [
           { value: 'segment_tailored', label: 'Segment' },
           { value: 'one_to_one_researched', label: '1:1' },
         ],
+      },
+    ],
+  },
+  {
+    key: 'socialProof',
+    label: 'Social Proof',
+    fields: [
+      {
+        key: 'type',
+        label: 'Type',
+        type: 'segmented',
+        options: [
+          { value: 'volume', label: 'Volume' },
+          { value: 'name_drop', label: 'Name drop' },
+          { value: 'peer', label: 'Peer' },
+          { value: 'result', label: 'Result' },
+          { value: 'quote', label: 'Quote' },
+          { value: 'recency', label: 'Recency' },
+          { value: 'consensus', label: 'Consensus' },
+        ],
+      },
+      {
+        key: 'placement',
+        label: 'Placement',
+        type: 'segmented',
+        options: [
+          { value: 'opener', label: 'Opener' },
+          { value: 'body', label: 'Body' },
+          { value: 'pre_cta', label: 'Before CTA' },
+          { value: 'ps', label: 'P.S.' },
+        ],
+        hiddenWhen: { field: 'type', equals: 'none' },
+      },
+      {
+        key: 'specificity',
+        label: 'Specificity',
+        type: 'segmented',
+        options: [
+          { value: 'vague', label: 'Vague' },
+          { value: 'specific', label: 'Specific' },
+        ],
+        hiddenWhen: { field: 'type', equals: 'none' },
       },
     ],
   },
@@ -532,6 +600,12 @@ export const DEFAULT_OFFER: OfferValues = {
   scarcity: 'none',
 }
 
+export const DEFAULT_SOCIAL_PROOF: SocialProofValues = {
+  type: 'none',
+  placement: 'body',
+  specificity: 'vague',
+}
+
 export const DEFAULT_LEVER_SUGGESTION: LeverSuggestion = {
   intent: {
     value: 'get_reply',
@@ -563,6 +637,11 @@ export const DEFAULT_LEVER_SUGGESTION: LeverSuggestion = {
     reasoning: 'PAS + curiosity suits cold outreach without being pushy.',
     locked: false,
   },
+  socialProof: {
+    values: DEFAULT_SOCIAL_PROOF,
+    reasoning: 'No social proof unless sender provides assets.',
+    locked: false,
+  },
   cta: {
     values: DEFAULT_CTA,
     ctaCopy: 'Would you be open to a quick reply?',
@@ -582,6 +661,7 @@ export function emptyColdContext(): ColdContext {
     recipientEmail: '',
     segmentAtSend: '',
     sequenceNumber: 1,
+    socialProofAssets: {},
   }
 }
 
@@ -614,6 +694,7 @@ type RawSuggestion = {
   sender?: RawCard
   body?: RawCard
   copyStrategy?: RawCard
+  socialProof?: RawCard
   cta?: RawCard
   offer?: RawCard
 }
@@ -625,6 +706,7 @@ export function normalizeLeverSuggestion(raw: RawSuggestion): LeverSuggestion {
   const sn = raw.sender?.values ?? {}
   const bd = raw.body?.values ?? {}
   const cs = raw.copyStrategy?.values ?? {}
+  const sp = raw.socialProof?.values ?? {}
   const ct = raw.cta?.values ?? {}
   const of = raw.offer?.values ?? {}
 
@@ -682,12 +764,33 @@ export function normalizeLeverSuggestion(raw: RawSuggestion): LeverSuggestion {
     copyStrategy: {
       values: {
         framework: pickEnum(cs.framework, ['AIDA', 'PAS', 'BAB', 'FAB', 'none'], d.copyStrategy.values.framework),
-        persuasion: pickEnum(cs.persuasion, ['reciprocity', 'social_proof', 'authority', 'scarcity', 'liking', 'commitment', 'none'], d.copyStrategy.values.persuasion),
+        persuasion: pickEnum(cs.persuasion, ['reciprocity', 'authority', 'scarcity', 'liking', 'commitment', 'none'], d.copyStrategy.values.persuasion),
         emotion: pickEnum(cs.emotion, ['fear', 'aspiration', 'curiosity', 'humor', 'fomo', 'status', 'pain_relief'], d.copyStrategy.values.emotion),
         specificity: pickEnum(cs.specificity, ['hard_numbers', 'vague'], d.copyStrategy.values.specificity),
         personalizationDepth: pickEnum(cs.personalizationDepth, ['generic', 'merge_field', 'segment_tailored', 'one_to_one_researched'], d.copyStrategy.values.personalizationDepth),
       },
       reasoning: pickString(raw.copyStrategy?.reasoning, d.copyStrategy.reasoning),
+      locked: false,
+    },
+    socialProof: {
+      values: {
+        type: pickEnum(
+          sp.type,
+          ['none', 'volume', 'name_drop', 'peer', 'result', 'quote', 'recency', 'consensus'],
+          d.socialProof.values.type,
+        ),
+        placement: pickEnum(
+          sp.placement,
+          ['opener', 'body', 'pre_cta', 'ps'],
+          d.socialProof.values.placement,
+        ),
+        specificity: pickEnum(
+          sp.specificity,
+          ['vague', 'specific'],
+          d.socialProof.values.specificity,
+        ),
+      },
+      reasoning: pickString(raw.socialProof?.reasoning, d.socialProof.reasoning),
       locked: false,
     },
     cta: {
@@ -762,10 +865,16 @@ const bodyValuesSchema = cardValuesSchema({
 
 const copyStrategyValuesSchema = cardValuesSchema({
   framework: enumSchema(['AIDA', 'PAS', 'BAB', 'FAB', 'none']),
-  persuasion: enumSchema(['reciprocity', 'social_proof', 'authority', 'scarcity', 'liking', 'commitment', 'none']),
+  persuasion: enumSchema(['reciprocity', 'authority', 'scarcity', 'liking', 'commitment', 'none']),
   emotion: enumSchema(['fear', 'aspiration', 'curiosity', 'humor', 'fomo', 'status', 'pain_relief']),
   specificity: enumSchema(['hard_numbers', 'vague']),
   personalizationDepth: enumSchema(['generic', 'merge_field', 'segment_tailored', 'one_to_one_researched']),
+})
+
+const socialProofValuesSchema = cardValuesSchema({
+  type: enumSchema(['none', 'volume', 'name_drop', 'peer', 'result', 'quote', 'recency', 'consensus']),
+  placement: enumSchema(['opener', 'body', 'pre_cta', 'ps']),
+  specificity: enumSchema(['vague', 'specific']),
 })
 
 const ctaValuesSchema = cardValuesSchema({
@@ -814,6 +923,7 @@ export const SUGGEST_LEVERS_JSON_SCHEMA = {
     sender: cardSchema(senderValuesSchema),
     body: cardSchema(bodyValuesSchema),
     copyStrategy: cardSchema(copyStrategyValuesSchema),
+    socialProof: cardSchema(socialProofValuesSchema),
     cta: cardSchema(ctaValuesSchema, { ctaCopy: { type: 'string' } }),
     offer: cardSchema(offerValuesSchema),
   },
@@ -824,6 +934,7 @@ export const SUGGEST_LEVERS_JSON_SCHEMA = {
     'sender',
     'body',
     'copyStrategy',
+    'socialProof',
     'cta',
     'offer',
   ],
@@ -882,6 +993,12 @@ export function mergeWithLocked(
     out.copyStrategy = {
       ...existing.copyStrategy,
       reasoning: ai.copyStrategy.reasoning,
+    }
+  }
+  if (existing.socialProof.locked) {
+    out.socialProof = {
+      ...existing.socialProof,
+      reasoning: ai.socialProof.reasoning,
     }
   }
   if (existing.cta.locked) {

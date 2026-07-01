@@ -20,7 +20,11 @@ function isFieldInactive(
   values: Record<string, unknown>,
 ): boolean {
   if (!field.hiddenWhen) return false
-  return values[field.hiddenWhen.field] === field.hiddenWhen.equals
+  const parentVal = values[field.hiddenWhen.field]
+  if (parentVal === field.hiddenWhen.equals) return true
+  // Deselected segmented chips use ''; treat as inactive when parent is 'none'
+  if (parentVal === '' && field.hiddenWhen.equals === 'none') return true
+  return false
 }
 
 type FieldGroup = FieldDef | FieldDef[]

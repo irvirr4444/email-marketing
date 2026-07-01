@@ -166,11 +166,13 @@ export default function App() {
 
           <div id="section-style" className="section-scroll-target">
             <StyleSection
+              context={context}
               levers={levers}
               leversSuggested={leversSuggested}
               canSuggest={canSuggest}
               loadingLevers={loadingLevers}
               loadingDraft={loadingDraft}
+              onContextChange={setContext}
               onLeversChange={setLevers}
               onSuggestLevers={handleSuggestLevers}
             />
