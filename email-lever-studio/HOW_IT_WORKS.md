@@ -243,6 +243,14 @@ CLI provides no social proof assets by default — AI defaults to `none` unless 
 | `ogilvy` | David Ogilvy (research-driven) |
 | `kern` | Frank Kern (conversational) |
 | `chaperon` | Andre Chaperon (story-driven) |
+| `halbert` | Gary Halbert (street-smart direct mail) |
+| `schwartz` | Eugene Schwartz (market awareness) |
+| `albuquerque` | Evaldo Albuquerque (big domino / one belief) |
+| `makepeace` | Clayton Makepeace (dominant emotion) |
+| `brunson` | Russell Brunson (story-funnel) |
+| `bencivenga` | Gary Bencivenga (fascination-driven proof) |
+| `carlton` | John Carlton (punchy street copy) |
+| `settle` | Ben Settle (daily infotainment) |
 
 Passed as `style` in generate-draft request body; appended to system prompt.
 

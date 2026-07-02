@@ -5,23 +5,38 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "dev:ui": "vite",
+    "build:ui": "vite build",
+    "preview:ui": "vite preview",
     "generate": "tsx scripts/generate-email.ts",
     "batch": "tsx scripts/batch-generate.ts",
     "import-batch": "tsx scripts/import-batch.ts",
+    "test-url-research": "tsx scripts/test-url-research.ts",
     "lint": "oxlint"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "docx": "^9.7.1",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "lucide-react": "^0.487.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.12",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.13.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.7.0",
     "oxlint": "^1.71.0",
+    "tailwindcss": "^4.1.12",
     "tsx": "^4.22.4",
-    "typescript": "~6.0.2"
+    "tw-animate-css": "^1.3.8",
+    "typescript": "~6.0.2",
+    "vite": "^6.3.5"
   }
 }

@@ -5,10 +5,12 @@ import { GENERATE_DRAFT_SYSTEM_PROMPT } from '../prompts.js'
 import { buildLeverInstructions } from '../../shared/lever-definitions.ts'
 import {
   GENERATE_DRAFT_JSON_SCHEMA,
+  applySocialProofFromAssets,
   type ColdContext,
   type EmailDraft,
   type LeverSuggestion,
 } from '../../shared/schema.ts'
+import { applyGenerationDefaults } from '../../shared/generation-defaults.ts'
 
 export async function generateDraftHandler(
   req: Request,
@@ -32,6 +34,9 @@ export async function generateDraftHandler(
       return
     }
 
+    applySocialProofFromAssets(levers, context.socialProofAssets)
+    const defaults = applyGenerationDefaults(levers, context.socialProofAssets)
+
     const userPrompt = [
       '## Context',
       formatContextForPrompt(context),
@@ -41,7 +46,7 @@ export async function generateDraftHandler(
 
     const system = style
       ? `${GENERATE_DRAFT_SYSTEM_PROMPT}\n\n${style}`
-      : GENERATE_DRAFT_SYSTEM_PROMPT
+      : `${GENERATE_DRAFT_SYSTEM_PROMPT}\n\n${defaults.styleText}`
 
     const draft = (await completeStructuredJson({
       system,

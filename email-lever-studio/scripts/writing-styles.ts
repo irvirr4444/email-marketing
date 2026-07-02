@@ -1,39 +1,14 @@
-export const WRITING_STYLES = {
-  kennedy: `## Writing Style — Dan Kennedy (Direct Response)
+export {
+  WRITING_STYLES,
+  STYLE_AUTHOR_LABELS,
+  resolveStyle,
+  type StyleKey,
+} from '../shared/writing-styles.ts'
 
-Write with blunt, no-BS authority. Structure the body as Problem → Agitate → Solution.
-The headline must be bold and benefit-driven — no puns, no wordplay.
-Tie the CTA to the reader's identity: not buying means staying in a lesser group.
-Every sentence must earn its place. Create urgency. Make the cost of inaction viscerally real before introducing any offer.`,
+import { WRITING_STYLES, resolveStyle, type StyleKey } from '../shared/writing-styles.ts'
 
-  ogilvy: `## Writing Style — David Ogilvy (Research-Driven Persuasion)
-
-You are not writing to be admired. You are writing to sell.
-The subject line must promise a specific, tangible benefit and telegraph the message immediately.
-Write with the elegance of a highly intelligent adult speaking to another intelligent adult — never folksy, never corporate.
-Lead with the most compelling specific fact about the product. Specificity is more credible than vagueness.
-Use short words, short sentences, short paragraphs. Make the product the hero.`,
-
-  kern: `## Writing Style — Frank Kern (Conversational Closer)
-
-Write like you're talking to a friend who has the exact problem this product solves.
-Use contractions. Use short sentences. Use pauses. Keep it raw and real — never polished.
-Open with a personal story or relatable situation before introducing the offer.
-Sell the outcome, not the process. Lead with the transformation, never the features.
-The reader should feel this was written by one human for one human.`,
-
-  chaperon: `## Writing Style — Andre Chaperon (Soap Opera / Story-Driven)
-
-You are not sending a marketing email. You are writing an episode.
-Open a story loop — a moment of tension or curiosity — and do not fully close it.
-Be personal, confessional, and specific. The tone is lived-in, not polished.
-Deliver genuine value inside the email before any ask.
-End with exactly one CTA. Leave them wanting to know what happens next.`,
-} as const
-
-export type StyleKey = keyof typeof WRITING_STYLES
-
-export function resolveStyle(
+/** CLI flag resolver — exits on invalid key. */
+export function resolveStyleFromFlag(
   flag: string | undefined,
 ): { key: StyleKey; text: string } | undefined {
   if (!flag) return undefined
@@ -46,5 +21,9 @@ export function resolveStyle(
     process.exit(1)
   }
 
-  return { key, text: WRITING_STYLES[key] }
+  const resolved = resolveStyle(key)
+  return { key: resolved.key, text: resolved.text }
 }
+
+/** @deprecated Use resolveStyleFromFlag for CLI; resolveStyle from shared for typed keys. */
+export const resolveStyleFlag = resolveStyleFromFlag

@@ -25,6 +25,8 @@ export type ResearchCliOptions = {
   researchLayers?: string
   researchTone?: string
   researchDepth?: string
+  companyUrl?: string
+  productUrl?: string
   socialProofResult?: string
   socialProofCustomer?: string
   socialProofQuote?: string
@@ -37,6 +39,8 @@ export const CLI_FLAG_ALIASES: Record<string, string> = {
   'research-layers': 'researchLayers',
   'research-tone': 'researchTone',
   'research-depth': 'researchDepth',
+  'company-url': 'companyUrl',
+  'product-url': 'productUrl',
   'social-proof-result': 'socialProofResult',
   'social-proof-customer': 'socialProofCustomer',
   'social-proof-quote': 'socialProofQuote',
@@ -150,9 +154,12 @@ export function mergeSocialProofAssets(
 export async function researchSocialProof(
   productDescription: string,
   config: SocialProofResearchConfig,
+  urls?: { companyUrl?: string; productUrl?: string },
 ): Promise<SocialProofAssets> {
   return postJson<SocialProofAssets>('/api/research-social-proof', {
-    productDescription,
+    productDescription: productDescription || undefined,
+    companyUrl: urls?.companyUrl,
+    productUrl: urls?.productUrl,
     config,
   })
 }
@@ -168,10 +175,17 @@ export async function resolveSocialProofAssets(
   }
 
   const config = buildResearchConfig(opts)
+  const urlNote =
+    opts.companyUrl || opts.productUrl
+      ? `, urls: ${[opts.companyUrl, opts.productUrl].filter(Boolean).join(' + ')}`
+      : ''
   console.error(
-    `Researching social proof (layers: ${config.layers.join(', ')}, tone: ${config.tone}, depth: ${config.depth})…`,
+    `Researching social proof (layers: ${config.layers.join(', ')}, tone: ${config.tone}, depth: ${config.depth}${urlNote})…`,
   )
-  const researched = await researchSocialProof(productDescription, config)
+  const researched = await researchSocialProof(productDescription, config, {
+    companyUrl: opts.companyUrl,
+    productUrl: opts.productUrl,
+  })
   return mergeSocialProofAssets(researched, cliAssets)
 }
 

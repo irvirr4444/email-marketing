@@ -119,6 +119,8 @@ Options:
   --docx      Also write cold_emails.docx with lever tables (paragraph spacing preserved)
   --reexport-docx <batch-dir>  Rebuild cold_emails.docx from existing batch folder
   --research  Run social proof research once (reused across scenarios)
+  --company-url   Company website URL for social proof research
+  --product-url   Product page URL for social proof research
   --research-layers / --research-tone / --research-depth
   --social-proof-*  Direct proof assets (merged with research)
 
@@ -209,6 +211,8 @@ async function main() {
     researchLayers: args.researchLayers,
     researchTone: args.researchTone,
     researchDepth: args.researchDepth,
+    companyUrl: args.companyUrl,
+    productUrl: args.productUrl,
     socialProofResult: args.socialProofResult,
     socialProofCustomer: args.socialProofCustomer,
     socialProofQuote: args.socialProofQuote,
@@ -235,6 +239,8 @@ async function main() {
     company: string
     campaign: string
     product: string
+    companyUrl?: string
+    productUrl?: string
     defaultIntent: string
     mode: string
     research?: ReturnType<typeof buildResearchConfig>
@@ -246,6 +252,8 @@ async function main() {
     company: args.company!,
     campaign: args.campaign!,
     product: args.product!,
+    ...(args.companyUrl ? { companyUrl: args.companyUrl } : {}),
+    ...(args.productUrl ? { productUrl: args.productUrl } : {}),
     defaultIntent,
     mode: args.diverse50 ? 'diverse50' : args.matrix ? 'matrix' : 'curated',
     ...(args.research ? { research: buildResearchConfig(researchOpts) } : {}),

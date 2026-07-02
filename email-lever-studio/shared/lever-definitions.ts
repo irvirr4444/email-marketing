@@ -44,6 +44,20 @@ export const LEVER_DEFINITIONS = {
     AIDA: 'Attention → Interest → Desire → Action. Hook with something surprising or bold. Build interest with relevant facts or a scenario. Create desire by connecting product to outcome they want. Close with a single clear action.',
     BAB: 'Before → After → Bridge. Paint the current painful state in one line. Paint the better future state in the next. The product is the bridge that gets them there. Keep it tight — three beats, no padding.',
     FAB: 'Feature → Advantage → Benefit. Name what the product does. Explain why that matters mechanically. Land on what the reader actually gets as a result. Repeat for 2–3 key points max.',
+    QUEST: 'Qualify → Understand → Educate → Stimulate → Transition. Open by signaling exactly who this is for, so the reader self-identifies. Show you understand their specific situation. Teach them one useful thing related to the problem. Stimulate interest in solving it. Transition smoothly into the ask — never a hard pivot.',
+    AIDCA: 'Attention → Interest → Desire → Conviction → Action. Same as AIDA, but before the close insert one concrete proof point — a stat, result, or credibility marker — that makes the desire feel justified, not just felt. Then close with the action.',
+    ACCA: 'Awareness → Comprehension → Conviction → Action. Surface the issue so the reader recognizes it exists. Explain plainly how it works or why it happens. State clearly why your solution is the right response. End with a direct, unambiguous action step.',
+    'Star-Story-Solution': 'Star → Story → Solution. Introduce a compelling character or subject (often the sender, a customer, or the prospect themselves) in one line. Tell a brief story of their struggle or situation. Resolve it by introducing the product as the solution that closed the story.',
+    'Star-Chain-Hook': 'Star → Chain → Hook. Open with an attention-grabbing element or claim (the Star). Build a short chain of logical or emotional reasons that support it. End on a Hook — a specific, timely reason to act now.',
+    PASTOR: 'Problem → Amplify → Story → Transformation → Offer → Response. Name the problem, then amplify its cost briefly. Ground it in a short story (yours or a customer\'s) that shows the problem resolved. Describe the transformation achieved. State the offer plainly. Close with a specific, low-friction response you want.',
+    Because: 'Claim/Ask + Because + Reason. State the ask directly, then justify it in the same breath with "because [specific, relevant reason]." The reason should be concrete and tied to the reader\'s situation — not generic. One sentence, no build-up.',
+    'Slippery Slide': 'No fixed stages — line-by-line momentum. Every sentence\'s only job is to get the next sentence read. Keep sentences short, curiosity-driven, and low-resistance. Avoid front-loading the ask or the pitch; let it emerge only after the reader is already several lines in.',
+    'Value Prop (Pain/Gain/Job)': 'Pain → Gain → Job-to-be-done. Name the specific pain or friction the reader is dealing with. State the gain or outcome they actually want. Frame the product as what helps them get that "job" done — not as a feature list.',
+    '4 Us': 'Urgent → Unique → Useful → Ultra-specific. Apply this to the headline or subject line only. Make sure it conveys time-sensitivity, stands out from generic asks, promises real value, and uses a specific detail (number, name, timeframe) rather than a vague claim.',
+    '4 Cs': 'Clear → Concise → Compelling → Credible. Use as an edit pass, not a writing structure. Strip ambiguity so the ask can\'t be misread. Cut every unnecessary word. Make sure there\'s one compelling reason to care. Back any claim with something credible — a fact, number, or specific detail.',
+    'Hook-Story-Offer': 'Hook → Story → Offer. Open with a specific, scroll-stopping line relevant to the reader. Add one line of context or credibility — no more. Close with a clear, low-commitment offer or ask.',
+    PPPP: 'Picture → Promise → Prove → Push. Paint a picture of the desired outcome. State the promise — what the product delivers. Prove it with a fact, result, or credibility marker. Push for action with urgency or a clear next step.',
+    SLAP: 'Stop → Look → Act → Purchase. Open with something that stops the scroll or the skim. Hold attention long enough for the reader to actually look at the offer. Prompt a small action. Close by connecting that action to the purchase or ultimate ask.',
     none: 'No fixed structure. Write naturally and conversationally. Let the logic flow from the context rather than a formula.',
   },
   emotion: {
@@ -222,11 +236,19 @@ function formatSocialProofAssetRules(
   levers: LeverSuggestion,
 ): string[] {
   const sp = levers.socialProof.values
-  if (sp.type === 'none' && sp.specificity !== 'specific') return []
-
   const assets = context?.socialProofAssets ?? {}
-  return [
-    'SOCIAL PROOF ASSETS (from sender):',
+  const hasAssets = [
+    assets.recognizableCustomer,
+    assets.specificResult,
+    assets.customerQuote,
+    assets.customerCount,
+    assets.recentWin,
+  ].some((value) => Boolean(value?.trim()))
+
+  if (!hasAssets && sp.type === 'none') return []
+
+  const lines = [
+    'SOCIAL PROOF ASSETS (from research — use in body):',
     `- Recognizable customer: ${assetOrNone(assets.recognizableCustomer)}`,
     `- Specific result: ${assetOrNone(assets.specificResult)}`,
     `- Customer quote: ${assetOrNone(assets.customerQuote)}`,
@@ -234,12 +256,24 @@ function formatSocialProofAssetRules(
     `- Recent win: ${assetOrNone(assets.recentWin)}`,
     '',
     'SOCIAL PROOF RULES:',
-    '- If type is "none": do not include any social proof in the email.',
-    '- If specificity is "specific" AND the relevant asset is "none provided": do not fabricate proof. Omit social proof entirely.',
-    '- Match proof type to asset: recognizableCustomer for name_drop, specificResult for result, customerQuote for quote, customerCount for volume, recentWin for recency.',
-    '- For peer and consensus, use recognizableCustomer if available, otherwise general peer language.',
-    '',
   ]
+
+  if (sp.type === 'none') {
+    lines.push(
+      '- Research returned proof above. Include at least one concrete proof point in the email body.',
+      '- Do not fabricate additional proof beyond what is listed.',
+    )
+  } else {
+    lines.push(
+      '- If specificity is "specific" AND the relevant asset is "none provided": do not fabricate proof. Omit social proof entirely.',
+      '- Match proof type to asset: recognizableCustomer for name_drop, specificResult for result, customerQuote for quote, customerCount for volume, recentWin for recency.',
+      '- For peer and consensus, use recognizableCustomer if available, otherwise general peer language.',
+      '- You MUST include at least one proof point from the assets above when any asset is provided.',
+    )
+  }
+
+  lines.push('')
+  return lines
 }
 
 export function buildLeverInstructions(

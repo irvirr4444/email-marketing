@@ -1,0 +1,9 @@
+{
+  "name": "email-marketing",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix email-lever-studio",
+    "dev:ui": "npm run dev:ui --prefix email-lever-studio",
+    "build:ui": "npm run build:ui --prefix email-lever-studio"
+  }
+}

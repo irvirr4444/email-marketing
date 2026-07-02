@@ -1,5 +1,6 @@
 import {
   cloneLeverSuggestion,
+  FRAMEWORK_VALUES,
   type BodyValues,
   type CopyStrategyValues,
   type CtaValues,
@@ -244,12 +245,12 @@ export function resolveStyleText(style: StyleChoice): string | undefined {
 
 const D50_INTENTS = [
   'get_reply',
+  'book_meeting',
   'drive_purchase',
   'click_to_page',
   'collect_info',
-  'drive_purchase',
+  'referral',
 ] as const
-const D50_FRAMEWORKS = ['PAS', 'AIDA', 'BAB', 'FAB', 'none'] as const
 const D50_EMOTIONS = [
   'curiosity',
   'aspiration',
@@ -267,18 +268,21 @@ const D50_PERSUASIONS = [
   'scarcity',
   'commitment',
 ] as const
-const D50_STYLES: StyleChoice[] = ['kennedy', 'ogilvy', 'kern', 'chaperon', 'none']
+const D50_STYLES: StyleChoice[] = [
+  ...(Object.keys(WRITING_STYLES) as StyleKey[]),
+  'none',
+]
 
 /** 50 scenarios with broad lever coverage (framework, emotion, persuasion, style, subject, CTA, social proof). */
 export function buildDiverse50Scenarios(): Scenario[] {
   const scenarios: Scenario[] = []
 
   for (let i = 0; i < 50; i++) {
-    const framework = D50_FRAMEWORKS[i % D50_FRAMEWORKS.length]!
+    const intent = D50_INTENTS[i % D50_INTENTS.length]!
+    const framework = FRAMEWORK_VALUES[i % FRAMEWORK_VALUES.length]!
     const emotion = D50_EMOTIONS[i % D50_EMOTIONS.length]!
     const persuasion = D50_PERSUASIONS[i % D50_PERSUASIONS.length]!
     const style = D50_STYLES[i % D50_STYLES.length]!
-    const intent = D50_INTENTS[i % D50_INTENTS.length]!
     const id = `d50-${String(i + 1).padStart(2, '0')}-${framework.toLowerCase()}-${emotion}-${style}`
 
     const ctaOptions = [

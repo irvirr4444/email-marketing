@@ -45,9 +45,11 @@ npm run generate -- \
 
 | Flag | Purpose |
 |------|---------|
-| `--style` | `kennedy`, `ogilvy`, `kern`, `chaperon` |
+| `--style` | `kennedy`, `ogilvy`, `kern`, `chaperon`, `halbert`, `schwartz`, `albuquerque`, `makepeace`, `brunson`, `bencivenga`, `carlton`, `settle` |
 | `--no-file` | Skip writing `output/draft-*.txt` |
-| `--research` | Mine social proof from product description |
+| `--research` | Mine social proof from product description and/or URLs |
+| `--company-url` | Company website URL to fetch for social proof research |
+| `--product-url` | Product page URL to fetch for social proof research |
 | `--research-layers` | `ingredient,origin,industry,behavioral,expert,direct,company` |
 | `--research-tone` | `clinical`, `mass_market`, `luxury`, `casual` |
 | `--research-depth` | `quick`, `full`, `fused` |
@@ -61,7 +63,16 @@ Two-stage pipeline:
 2. **Generate** — levers pick how proof is used (`type`, `placement`, `specificity`)
 
 ```bash
-# Research + generate
+# Research from URLs + generate
+npm run generate -- \
+  --company "Provence Beauty" \
+  --company-url "https://www.provencebeauty.com/" \
+  --product-url "https://www.provencebeauty.com/collections/serums-oils/products/dew-beaucoup-peptide-serum" \
+  --product "Dew Beaucoup Peptide Serum" \
+  --campaign "Cold D2C" --intent get_reply \
+  --research --research-layers ingredient,direct,company --research-depth full
+
+# Research + generate (text only)
 npm run generate -- \
   --company "Acme" --product "..." --campaign "..." --intent get_reply \
   --research --research-layers ingredient,expert --research-tone clinical

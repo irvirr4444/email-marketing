@@ -44,6 +44,26 @@ export type SocialProofAssets = {
   recentWin?: string
 }
 
+export type PageExtract = {
+  url: string
+  title?: string
+  description?: string
+  text: string
+  price?: string
+  rating?: { value: string; count: string }
+  ingredients?: string[]
+  benefits?: string[]
+  sections?: Record<string, string>
+  source?: 'html' | 'shopify_json'
+  error?: string
+}
+
+export type SocialProofResearchInput = {
+  productDescription?: string
+  companyUrl?: string
+  productUrl?: string
+}
+
 export const RESEARCH_LAYER_OPTIONS = [
   'ingredient',
   'origin',
@@ -128,8 +148,32 @@ export type BodyValues = {
   scannable: boolean
 }
 
+export const FRAMEWORK_VALUES = [
+  'PAS',
+  'AIDA',
+  'BAB',
+  'FAB',
+  'QUEST',
+  'AIDCA',
+  'ACCA',
+  'Star-Story-Solution',
+  'Star-Chain-Hook',
+  'PASTOR',
+  'Because',
+  'Slippery Slide',
+  'Value Prop (Pain/Gain/Job)',
+  '4 Us',
+  '4 Cs',
+  'Hook-Story-Offer',
+  'PPPP',
+  'SLAP',
+  'none',
+] as const
+
+export type FrameworkValue = (typeof FRAMEWORK_VALUES)[number]
+
 export type CopyStrategyValues = {
-  framework: 'AIDA' | 'PAS' | 'BAB' | 'FAB' | 'none'
+  framework: FrameworkValue
   persuasion:
     | 'reciprocity'
     | 'authority'
@@ -251,6 +295,14 @@ export const INTENT_OPTIONS: OptionDef[] = [
   { value: 'collect_info', label: 'Collect Info' },
   { value: 'referral', label: 'Referral' },
 ]
+
+export function formatFrameworkOptions(): string {
+  return FRAMEWORK_VALUES.join(', ')
+}
+
+export function formatIntentOptions(): string {
+  return INTENT_OPTIONS.map((o) => o.value).join(', ')
+}
 
 export const SENIORITY_OPTIONS = [
   'IC',
@@ -591,8 +643,8 @@ export const DEFAULT_SUBJECT_LINE: SubjectLineValues = {
 }
 
 export const DEFAULT_PREHEADER: PreheaderValues = {
-  present: false,
-  length: 'short',
+  present: true,
+  length: 'medium',
   relationship: 'complements',
 }
 
@@ -602,9 +654,9 @@ export const DEFAULT_SENDER: SenderValues = {
 }
 
 export const DEFAULT_BODY: BodyValues = {
-  length: 'short',
+  length: 'medium',
   format: 'plain',
-  linkCount: 'zero',
+  linkCount: 'one',
   readingLevel: 'simple',
   scannable: false,
 }
@@ -650,7 +702,7 @@ export const DEFAULT_LEVER_SUGGESTION: LeverSuggestion = {
   },
   preheader: {
     values: DEFAULT_PREHEADER,
-    reasoning: 'Skip preheader unless inbox preview needs support.',
+    reasoning: 'Always include preheader to maximize inbox preview impact.',
     locked: false,
   },
   sender: {
@@ -660,7 +712,7 @@ export const DEFAULT_LEVER_SUGGESTION: LeverSuggestion = {
   },
   body: {
     values: DEFAULT_BODY,
-    reasoning: 'Short plain-text body respects cold recipient attention.',
+    reasoning: 'Medium length with one link to product page for easy action.',
     locked: false,
   },
   copyStrategy: {
@@ -794,7 +846,7 @@ export function normalizeLeverSuggestion(raw: RawSuggestion): LeverSuggestion {
     },
     copyStrategy: {
       values: {
-        framework: pickEnum(cs.framework, ['AIDA', 'PAS', 'BAB', 'FAB', 'none'], d.copyStrategy.values.framework),
+        framework: pickEnum(cs.framework, [...FRAMEWORK_VALUES], d.copyStrategy.values.framework),
         persuasion: pickEnum(cs.persuasion, ['reciprocity', 'authority', 'scarcity', 'liking', 'commitment', 'none'], d.copyStrategy.values.persuasion),
         emotion: pickEnum(cs.emotion, ['fear', 'aspiration', 'curiosity', 'humor', 'fomo', 'status', 'pain_relief'], d.copyStrategy.values.emotion),
         specificity: pickEnum(cs.specificity, ['hard_numbers', 'vague'], d.copyStrategy.values.specificity),
@@ -895,7 +947,7 @@ const bodyValuesSchema = cardValuesSchema({
 })
 
 const copyStrategyValuesSchema = cardValuesSchema({
-  framework: enumSchema(['AIDA', 'PAS', 'BAB', 'FAB', 'none']),
+  framework: enumSchema([...FRAMEWORK_VALUES]),
   persuasion: enumSchema(['reciprocity', 'authority', 'scarcity', 'liking', 'commitment', 'none']),
   emotion: enumSchema(['fear', 'aspiration', 'curiosity', 'humor', 'fomo', 'status', 'pain_relief']),
   specificity: enumSchema(['hard_numbers', 'vague']),
@@ -1019,6 +1071,57 @@ export function normalizeSocialProofAssets(
     customerCount: pick('customerCount'),
     recentWin: pick('recentWin'),
   }
+}
+
+export function hasSocialProofAssets(
+  assets: SocialProofAssets | undefined,
+): boolean {
+  if (!assets) return false
+  return [
+    assets.recognizableCustomer,
+    assets.specificResult,
+    assets.customerQuote,
+    assets.customerCount,
+    assets.recentWin,
+  ].some((value) => Boolean(value?.trim()))
+}
+
+const ASSET_TO_PROOF: {
+  field: keyof SocialProofAssets
+  type: SocialProofType
+  placement: SocialProofPlacement
+}[] = [
+  { field: 'recentWin', type: 'recency', placement: 'ps' },
+  { field: 'recognizableCustomer', type: 'name_drop', placement: 'opener' },
+  { field: 'customerQuote', type: 'quote', placement: 'pre_cta' },
+  { field: 'customerCount', type: 'volume', placement: 'body' },
+  { field: 'specificResult', type: 'result', placement: 'pre_cta' },
+]
+
+/** When research returned proof assets, ensure levers require using them in the email body. */
+export function applySocialProofFromAssets(
+  levers: LeverSuggestion,
+  assets: SocialProofAssets | undefined,
+): LeverSuggestion {
+  if (!hasSocialProofAssets(assets)) return levers
+
+  if (levers.socialProof.values.type !== 'none') {
+    levers.socialProof.values.specificity = 'specific'
+    return levers
+  }
+
+  for (const { field, type, placement } of ASSET_TO_PROOF) {
+    if (assets![field]?.trim()) {
+      levers.socialProof.values.type = type
+      levers.socialProof.values.placement = placement
+      levers.socialProof.values.specificity = 'specific'
+      levers.socialProof.reasoning =
+        `Research surfaced ${field} proof — weave this concrete evidence into the email body.`
+      return levers
+    }
+  }
+
+  return levers
 }
 
 export function normalizeResearchConfig(

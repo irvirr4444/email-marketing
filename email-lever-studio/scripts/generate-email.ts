@@ -10,7 +10,7 @@ import {
   type IntentValue,
   type LeverSuggestion,
 } from '../shared/schema.ts'
-import { resolveStyle, type StyleKey } from './writing-styles.ts'
+import { resolveStyleFromFlag, WRITING_STYLES, type StyleKey } from './writing-styles.ts'
 import {
   buildContext,
   checkServer,
@@ -92,7 +92,7 @@ async function promptMissing(args: CliArgs): Promise<{
   let styleInput = args.style?.trim()
   if (!styleInput) {
     styleInput = (
-      await rl.question('Style (kennedy|ogilvy|kern|chaperon, or Enter to skip): ')
+      await rl.question(`Style (${Object.keys(WRITING_STYLES).join('|')}, or Enter to skip): `)
     ).trim()
   }
 
@@ -137,7 +137,7 @@ async function promptMissing(args: CliArgs): Promise<{
     process.exit(1)
   }
 
-  const style = styleInput ? resolveStyle(styleInput) : undefined
+  const style = styleInput ? resolveStyleFromFlag(styleInput) : undefined
 
   return {
     company,
@@ -160,12 +160,14 @@ async function main() {
   let product = rawArgs.product?.trim()
   let campaign = rawArgs.campaign?.trim()
   let intent = rawArgs.intent?.trim()
-  let styleResolved = rawArgs.style ? resolveStyle(rawArgs.style) : undefined
+  let styleResolved = rawArgs.style ? resolveStyleFromFlag(rawArgs.style) : undefined
   let researchOpts: ResearchCliOptions = {
     research: rawArgs.research,
     researchLayers: rawArgs.researchLayers,
     researchTone: rawArgs.researchTone,
     researchDepth: rawArgs.researchDepth,
+    companyUrl: rawArgs.companyUrl,
+    productUrl: rawArgs.productUrl,
     socialProofResult: rawArgs.socialProofResult,
     socialProofCustomer: rawArgs.socialProofCustomer,
     socialProofQuote: rawArgs.socialProofQuote,
@@ -180,7 +182,7 @@ async function main() {
     campaign = prompted.campaign
     intent = prompted.intent
     styleResolved = prompted.styleKey
-      ? resolveStyle(prompted.styleKey)
+      ? resolveStyleFromFlag(prompted.styleKey)
       : undefined
     rawArgs.noFile = prompted.noFile
     researchOpts = {
