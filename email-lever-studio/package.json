@@ -8,6 +8,7 @@
     "dev:ui": "vite",
     "build:ui": "vite build",
     "preview:ui": "vite preview",
+    "bandit": "cd ../bandit_mvp && ../.venv/bin/python -m uvicorn service:app --host 127.0.0.1 --port 8000",
     "generate": "tsx scripts/generate-email.ts",
     "batch": "tsx scripts/batch-generate.ts",
     "import-batch": "tsx scripts/import-batch.ts",

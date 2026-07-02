@@ -1,0 +1,5 @@
+vowpalwabbit==9.11.2
+anthropic>=0.40.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+psycopg[binary]>=3.1.0

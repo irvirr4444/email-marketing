@@ -1,8 +1,18 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
 import { suggestLeversHandler } from './routes/suggest-levers.js'
 import { generateDraftHandler } from './routes/generate-draft.js'
 import { researchSocialProofHandler } from './routes/research-social-proof.js'
+import {
+  banditPickHandler,
+  banditLearnHandler,
+  banditRecoveryHandler,
+  banditTrainHandler,
+} from './routes/bandit.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 const PORT = 3001
@@ -18,6 +28,15 @@ app.get('/api/health', (_req, res) => {
 app.post('/api/suggest-levers', suggestLeversHandler)
 app.post('/api/generate-draft', generateDraftHandler)
 app.post('/api/research-social-proof', researchSocialProofHandler)
+
+// Contextual bandit (proxied to the Python service in bandit_mvp/).
+app.post('/api/bandit/pick', banditPickHandler)
+app.post('/api/bandit/learn', banditLearnHandler)
+app.get('/api/bandit/recovery', banditRecoveryHandler)
+app.post('/api/bandit/train', banditTrainHandler)
+
+// Browser UI.
+app.use(express.static(resolve(__dirname, '../public')))
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`API server running on http://${HOST}:${PORT}`)

@@ -1,8 +1,8 @@
 # Email Lever Studio
 
-CLI + API tool for **cold-outreach email generation**. You provide company, product, campaign, and intent; Claude suggests levers and writes the draft. Optional social proof research runs first.
+API + CLI + React UI for **cold-outreach email generation**. You provide company and product; social proof research runs, the contextual bandit ([`../bandit_mvp/`](../bandit_mvp/)) picks the levers (Claude suggest-levers is the fallback), and Claude writes the draft.
 
-No browser UI. Optional Postgres import for batch tracking.
+No auth. Database optional (only for real bandit outcomes and batch import).
 
 ## Setup
 
@@ -15,18 +15,45 @@ CLAUDE_API_KEY=sk-ant-...
 ```bash
 cd email-lever-studio
 npm install
-npm run dev    # API at http://127.0.0.1:3001
+npm run dev    # API + browser UI at http://127.0.0.1:3001
 ```
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start Express API (required for all CLIs) |
+| `npm run dev` | Start Express API (required for all CLIs and the UI) |
+| `npm run dev:ui` | Start the React UI (Vite, http://127.0.0.1:5173) |
+| `npm run bandit` | Start the Python contextual bandit service (http://127.0.0.1:8000) |
 | `npm run generate` | One email — interactive or flags |
 | `npm run batch` | Many emails — curated, matrix, or 50 diverse lever combos |
 | `npm run import-batch` | Write `import-postgres.sql` for Supabase from a batch folder |
 | `npm run lint` | Oxlint |
+
+## React UI (bandit-driven)
+
+Open `http://127.0.0.1:5173` after starting the bandit service, the API, and Vite:
+
+```bash
+npm run bandit   # terminal 1 — bandit service on :8000
+npm run dev      # terminal 2 — API on :3001
+npm run dev:ui   # terminal 3 — React UI on :5173
+```
+
+Flow: enter company + product (and optionally tune the audience: segment, intent,
+industry, seniority) -> social proof research -> the bandit picks a full lever recipe
+(`POST /api/bandit/pick`) -> Claude renders the draft (`POST /api/generate-draft`).
+If the bandit service is unreachable, the UI falls back to Claude's
+`/api/suggest-levers` and the strategy panel shows which source picked the levers.
+
+The **Policy** section at the bottom of the UI trains the live policy on the logged
+sends in Postgres (`POST /api/bandit/train`) and shows what the greedy policy exploits
+toward (`GET /api/bandit/recovery`). See [`../bandit_mvp/README.md`](../bandit_mvp/README.md)
+for the reward/DB swap point.
+
+Node routes: `POST /api/bandit/pick`, `POST /api/bandit/learn`, `POST /api/bandit/train`,
+`GET /api/bandit/recovery` proxy to the Python service (`BANDIT_URL`, default
+`http://127.0.0.1:8000`).
 
 ## Generate one email
 
