@@ -342,7 +342,7 @@ export function buildLeverInstructions(
     appendSection(
       lines,
       'PREHEADER',
-      'present',
+      boolKey(ph.present),
       LEVER_DEFINITIONS.preheaderPresent,
       'preheaderPresent',
     )

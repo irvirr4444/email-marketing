@@ -17,10 +17,11 @@ export async function generateDraftHandler(
   res: Response,
 ): Promise<void> {
   try {
-    const { context, levers, style } = req.body as {
+    const { context, levers, style, leverSource } = req.body as {
       context: ColdContext
       levers: LeverSuggestion
       style?: string
+      leverSource?: 'bandit' | 'claude'
     }
 
     const validationError = validateColdContext(context)
@@ -34,8 +35,15 @@ export async function generateDraftHandler(
       return
     }
 
-    applySocialProofFromAssets(levers, context.socialProofAssets)
-    const defaults = applyGenerationDefaults(levers, context.socialProofAssets)
+    // Bandit-picked levers are already reconciled client-side and must not be
+    // mutated here ('none' persuasion / social proof are legitimate policy choices).
+    const isBandit = leverSource === 'bandit'
+    if (!isBandit) {
+      applySocialProofFromAssets(levers, context.socialProofAssets)
+    }
+    const defaults = applyGenerationDefaults(levers, context.socialProofAssets, {
+      applyPersuasionDefault: !isBandit,
+    })
 
     const userPrompt = [
       '## Context',

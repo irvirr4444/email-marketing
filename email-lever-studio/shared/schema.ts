@@ -1124,6 +1124,59 @@ export function applySocialProofFromAssets(
   return levers
 }
 
+/** Which researched asset backs each social proof type the bandit can pick. */
+const PROOF_TYPE_TO_ASSET: Partial<Record<SocialProofType, keyof SocialProofAssets>> = {
+  volume: 'customerCount',
+  consensus: 'customerCount',
+  name_drop: 'recognizableCustomer',
+  peer: 'recognizableCustomer',
+  result: 'specificResult',
+  quote: 'customerQuote',
+  recency: 'recentWin',
+}
+
+/**
+ * Reconcile bandit-chosen social proof levers with the assets research actually found.
+ *
+ * Unlike applySocialProofFromAssets (which fills in Claude's 'none' default), this
+ * respects the bandit's choice and only intervenes when the chosen proof type has no
+ * backing asset: it remaps to the strongest available asset, or 'none' when research
+ * found nothing — so the renderer is never asked to fabricate proof.
+ */
+export function reconcileSocialProofWithAssets(
+  levers: LeverSuggestion,
+  assets: SocialProofAssets | undefined,
+): LeverSuggestion {
+  const chosen = levers.socialProof.values.type
+  if (chosen === 'none') return levers
+
+  if (!hasSocialProofAssets(assets)) {
+    levers.socialProof.values.type = 'none'
+    levers.socialProof.reasoning =
+      'Bandit picked social proof, but research found no usable assets — omitted rather than fabricated.'
+    return levers
+  }
+
+  const backingField = PROOF_TYPE_TO_ASSET[chosen]
+  if (backingField && assets![backingField]?.trim()) {
+    return levers
+  }
+
+  for (const { field, type, placement } of ASSET_TO_PROOF) {
+    if (assets![field]?.trim()) {
+      levers.socialProof.values.type = type
+      levers.socialProof.values.placement = placement
+      levers.socialProof.values.specificity = 'specific'
+      levers.socialProof.reasoning =
+        `Bandit picked ${chosen} proof, but research only surfaced ${field} — remapped to ${type}.`
+      return levers
+    }
+  }
+
+  levers.socialProof.values.type = 'none'
+  return levers
+}
+
 export function normalizeResearchConfig(
   raw: Partial<SocialProofResearchConfig>,
 ): SocialProofResearchConfig | string {

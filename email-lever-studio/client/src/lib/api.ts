@@ -4,7 +4,10 @@ import type {
   LeverSuggestion,
   SocialProofAssets,
 } from '../../../shared/schema.ts'
-import { applySocialProofFromAssets } from '../../../shared/schema.ts'
+import {
+  applySocialProofFromAssets,
+  reconcileSocialProofWithAssets,
+} from '../../../shared/schema.ts'
 import { applyGenerationDefaults } from '../../../shared/generation-defaults.ts'
 import type { StyleKey } from '../../../shared/writing-styles.ts'
 import { DEFAULT_RESEARCH_CONFIG, type ResearchConfig } from './display.ts'
@@ -31,10 +34,45 @@ function isUrl(value: string): boolean {
   return /^https?:\/\//i.test(value.trim())
 }
 
+// --- Bandit audience context (mirrors bandit_mvp/levers.py CONTEXT) ---
+
+export type BanditContext = {
+  segment: string
+  intent: string
+  industry: string
+  seniority: string
+}
+
+export const DEFAULT_BANDIT_CONTEXT: BanditContext = {
+  segment: 'cold_prospect',
+  intent: 'drive_purchase',
+  industry: 'ecommerce',
+  seniority: 'ic',
+}
+
+const SENIORITY_LABELS: Record<string, string> = {
+  ic: 'IC',
+  manager: 'Manager',
+  director: 'Director',
+  exec: 'VP/C-level',
+}
+
+type BanditPickResponse = {
+  decisionId: string
+  context: BanditContext
+  recipe: Record<string, string>
+  levers: LeverSuggestion
+  propensity: number
+  candidateCount: number
+}
+
+export type LeverSource = 'bandit' | 'claude'
+
 function buildContext(
   company: string,
   product: string,
   assets: SocialProofAssets,
+  audience: BanditContext,
 ): ColdContext {
   const companyTrimmed = company.trim()
   const productTrimmed = product.trim()
@@ -43,9 +81,11 @@ function buildContext(
     recipientName: 'there',
     recipientEmail: 'prospect@example.com',
     companyName: isUrl(companyTrimmed) ? undefined : companyTrimmed,
-    segmentAtSend: 'cold_prospect',
+    industry: audience.industry,
+    seniority: SENIORITY_LABELS[audience.seniority] ?? audience.seniority,
+    segmentAtSend: audience.segment as ColdContext['segmentAtSend'],
     sequenceNumber: 1,
-    notes: `Campaign: Cold D2C\n\n${isUrl(productTrimmed) ? productTrimmed : productTrimmed}`,
+    notes: `Campaign: Cold D2C\n\n${productTrimmed}`,
     socialProofAssets: assets,
   }
 }
@@ -57,13 +97,48 @@ export type GenerationResult = {
   researchConfig: ResearchConfig
   styleKey: StyleKey
   styleAuthor: string
+  leverSource: LeverSource
+  decisionId?: string
+  propensity?: number
 }
 
 export type StepCallback = (step: number) => void
 
+/** Bandit picks the levers; Claude suggest-levers is the fallback when the service is down. */
+async function pickLevers(
+  audience: BanditContext,
+  context: ColdContext,
+  assets: SocialProofAssets,
+): Promise<{
+  levers: LeverSuggestion
+  source: LeverSource
+  decisionId?: string
+  propensity?: number
+}> {
+  try {
+    const pick = await postJson<BanditPickResponse>('/bandit/pick', {
+      context: audience,
+    })
+    // The bandit chose the social proof levers; only reconcile them with what the
+    // research actually found (never fabricate proof the assets can't back).
+    reconcileSocialProofWithAssets(pick.levers, assets)
+    return {
+      levers: pick.levers,
+      source: 'bandit',
+      decisionId: pick.decisionId,
+      propensity: pick.propensity,
+    }
+  } catch {
+    const levers = await postJson<LeverSuggestion>('/suggest-levers', { context })
+    applySocialProofFromAssets(levers, assets)
+    return { levers, source: 'claude' }
+  }
+}
+
 export async function generateEmail(
   company: string,
   product: string,
+  audience: BanditContext = DEFAULT_BANDIT_CONTEXT,
   onStepChange?: StepCallback,
 ): Promise<GenerationResult> {
   const companyTrimmed = company.trim()
@@ -86,16 +161,21 @@ export async function generateEmail(
 
   onStepChange?.(1)
 
-  const context = buildContext(companyTrimmed, productTrimmed, proofAssets)
+  const context = buildContext(companyTrimmed, productTrimmed, proofAssets, audience)
 
   onStepChange?.(2)
 
-  const levers = await postJson<LeverSuggestion>('/suggest-levers', {
+  const { levers, source, decisionId, propensity } = await pickLevers(
+    audience,
     context,
-  })
+    proofAssets,
+  )
 
-  applySocialProofFromAssets(levers, proofAssets)
-  const { styleKey, styleText, styleAuthor } = applyGenerationDefaults(levers, proofAssets)
+  const { styleKey, styleText, styleAuthor } = applyGenerationDefaults(
+    levers,
+    proofAssets,
+    { applyPersuasionDefault: source !== 'bandit' },
+  )
 
   onStepChange?.(3)
 
@@ -103,7 +183,57 @@ export async function generateEmail(
     context,
     levers,
     style: styleText,
+    leverSource: source,
   })
 
-  return { draft, levers, proofAssets, researchConfig: RESEARCH_CONFIG, styleKey, styleAuthor }
+  return {
+    draft,
+    levers,
+    proofAssets,
+    researchConfig: RESEARCH_CONFIG,
+    styleKey,
+    styleAuthor,
+    leverSource: source,
+    decisionId,
+    propensity,
+  }
+}
+
+// --- Policy panel (train on logged data + what it learned) ---
+
+export type PolicyValue = {
+  baseline: number
+  random: number
+  greedy: number
+  lift: number
+  learned: boolean
+  trials: number
+  distinctRecipes: number
+}
+
+export type TrainResult = {
+  ok: boolean
+  loaded: number
+  epochs: number
+  curve: { step: number; avgReward: number }[]
+  policyValue: PolicyValue | null
+}
+
+export type RecoveryResult = {
+  trials: number
+  top: Record<string, [string, number][]>
+  expectation: Record<string, string>
+}
+
+export async function trainOnLoggedData(): Promise<TrainResult> {
+  return postJson<TrainResult>('/bandit/train', {})
+}
+
+export async function fetchRecovery(trials = 1500): Promise<RecoveryResult> {
+  const res = await fetch(`${API_BASE}/bandit/recovery?trials=${trials}`)
+  const data = (await res.json()) as RecoveryResult & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error ?? 'Failed to sample the trained policy.')
+  }
+  return data
 }

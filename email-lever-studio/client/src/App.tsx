@@ -1,6 +1,11 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Check, Copy, ChevronDown, Loader2, ArrowRight, Zap } from 'lucide-react'
-import { generateEmail } from './lib/api'
+import {
+  generateEmail,
+  DEFAULT_BANDIT_CONTEXT,
+  type BanditContext,
+  type LeverSource,
+} from './lib/api'
 import {
   buildLeverChips,
   buildProofFacts,
@@ -9,7 +14,8 @@ import {
   type LeverChip,
   type StrategyCard,
 } from './lib/display'
-import type { EmailDraft } from '../../../shared/schema.ts'
+import PolicyPanel from './PolicyPanel'
+import type { EmailDraft } from '../../shared/schema.ts'
 
 type AppState = 'idle' | 'generating' | 'success' | 'error'
 
@@ -20,10 +26,72 @@ const STEPS = [
   'Writing your email',
 ]
 
+const AUDIENCE_FIELDS: {
+  key: keyof BanditContext
+  label: string
+  options: { value: string; label: string }[]
+}[] = [
+  {
+    key: 'segment',
+    label: 'Segment',
+    options: [
+      { value: 'cold_prospect', label: 'Cold prospect' },
+      { value: 'warm_lead', label: 'Warm lead' },
+      { value: 'trial_active', label: 'Trial active' },
+      { value: 'trial_expiring', label: 'Trial expiring' },
+      { value: 'first_time_buyer', label: 'First-time buyer' },
+      { value: 'repeat', label: 'Repeat' },
+      { value: 'vip', label: 'VIP' },
+      { value: 'churned', label: 'Churned' },
+      { value: 'win_back', label: 'Win-back' },
+      { value: 'referral_source', label: 'Referral source' },
+      { value: 'partner_affiliate', label: 'Partner / affiliate' },
+      { value: 'investor_advisor', label: 'Investor / advisor' },
+    ],
+  },
+  {
+    key: 'intent',
+    label: 'Intent',
+    options: [
+      { value: 'drive_purchase', label: 'Drive purchase' },
+      { value: 'book_meeting', label: 'Book meeting' },
+      { value: 'get_reply', label: 'Get reply' },
+      { value: 'click_to_page', label: 'Click to page' },
+      { value: 'collect_info', label: 'Collect info' },
+      { value: 'referral', label: 'Referral' },
+    ],
+  },
+  {
+    key: 'industry',
+    label: 'Industry',
+    options: [
+      { value: 'ecommerce', label: 'E-commerce' },
+      { value: 'saas', label: 'SaaS' },
+      { value: 'healthcare', label: 'Healthcare' },
+      { value: 'finance', label: 'Finance' },
+      { value: 'education', label: 'Education' },
+      { value: 'agency', label: 'Agency' },
+      { value: 'other', label: 'Other' },
+    ],
+  },
+  {
+    key: 'seniority',
+    label: 'Seniority',
+    options: [
+      { value: 'ic', label: 'IC' },
+      { value: 'manager', label: 'Manager' },
+      { value: 'director', label: 'Director' },
+      { value: 'exec', label: 'VP/C-level' },
+    ],
+  },
+]
+
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle')
   const [company, setCompany] = useState('')
   const [product, setProduct] = useState('')
+  const [audience, setAudience] = useState<BanditContext>(DEFAULT_BANDIT_CONTEXT)
+  const [leverSource, setLeverSource] = useState<LeverSource | null>(null)
   const [currentStep, setCurrentStep] = useState(-1)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -49,7 +117,7 @@ export default function App() {
     setResultsVisible(false)
 
     try {
-      const result = await generateEmail(company, product, (step) => {
+      const result = await generateEmail(company, product, audience, (step) => {
         setCurrentStep(step)
         if (step > 0) {
           setCompletedSteps((prev) =>
@@ -60,6 +128,7 @@ export default function App() {
 
       setCompletedSteps([0, 1, 2, 3])
       setDraft(result.draft)
+      setLeverSource(result.leverSource)
       setLeverChips(buildLeverChips(result.levers, result.researchConfig, result.styleKey))
       setStrategyCards(buildStrategyCards(result.levers, result.researchConfig, result.styleKey))
       setProofFacts(buildProofFacts(result.proofAssets))
@@ -103,6 +172,7 @@ export default function App() {
       setStrategyCards([])
       setProofFacts([])
       setErrorMessage(null)
+      setLeverSource(null)
     }, 200)
   }
 
@@ -164,6 +234,35 @@ export default function App() {
                 <p className="text-xs text-muted-foreground mt-1.5 ml-0.5">
                   Name, description, or product page URL
                 </p>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2.5">
+                Audience
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {AUDIENCE_FIELDS.map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      {field.label}
+                    </label>
+                    <select
+                      value={audience[field.key]}
+                      onChange={(e) =>
+                        setAudience((prev) => ({ ...prev, [field.key]: e.target.value }))
+                      }
+                      disabled={appState === 'generating'}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {field.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -298,9 +397,37 @@ export default function App() {
               }}
             >
               <div>
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-4">
-                  Strategy behind this email
-                </p>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    Strategy behind this email
+                  </p>
+                  {leverSource && (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[0.625rem] font-semibold uppercase tracking-wide flex-shrink-0"
+                      style={{
+                        backgroundColor:
+                          leverSource === 'bandit'
+                            ? 'rgba(191,87,48,0.09)'
+                            : 'var(--secondary)',
+                        border:
+                          leverSource === 'bandit'
+                            ? '1px solid rgba(191,87,48,0.3)'
+                            : '1px solid var(--border)',
+                        color:
+                          leverSource === 'bandit'
+                            ? 'var(--primary)'
+                            : 'var(--muted-foreground)',
+                      }}
+                      title={
+                        leverSource === 'bandit'
+                          ? 'Levers picked by the trained contextual bandit policy'
+                          : 'Bandit service unreachable — levers suggested by Claude'
+                      }
+                    >
+                      {leverSource === 'bandit' ? 'Bandit policy' : 'Claude fallback'}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {leverChips.map((lever) => (
                     <div
@@ -428,6 +555,8 @@ export default function App() {
             </button>
           </div>
         )}
+
+        <PolicyPanel />
 
         <footer className="text-center mt-16 mb-2">
           <p className="text-xs text-muted-foreground/60">

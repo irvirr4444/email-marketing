@@ -64,8 +64,14 @@ export type GenerationDefaults = {
 export function applyGenerationDefaults(
   levers: LeverSuggestion,
   assets: SocialProofAssets | undefined,
+  opts: { applyPersuasionDefault?: boolean } = {},
 ): GenerationDefaults {
-  const persuasion = applyPersuasionDefault(levers, assets)
+  // Bandit-chosen levers must not be mutated: 'none' persuasion is a legitimate
+  // policy choice, not a gap to fill with a random default.
+  const persuasion =
+    opts.applyPersuasionDefault === false
+      ? levers.copyStrategy.values.persuasion
+      : applyPersuasionDefault(levers, assets)
   const styleKey = pickStyleForPersuasion(persuasion)
   const style = resolveStyle(styleKey)
 

@@ -1,5 +1,3 @@
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
 import { suggestLeversHandler } from './routes/suggest-levers.js'
@@ -11,8 +9,6 @@ import {
   banditRecoveryHandler,
   banditTrainHandler,
 } from './routes/bandit.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 const PORT = 3001
@@ -34,9 +30,6 @@ app.post('/api/bandit/pick', banditPickHandler)
 app.post('/api/bandit/learn', banditLearnHandler)
 app.get('/api/bandit/recovery', banditRecoveryHandler)
 app.post('/api/bandit/train', banditTrainHandler)
-
-// Browser UI.
-app.use(express.static(resolve(__dirname, '../public')))
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`API server running on http://${HOST}:${PORT}`)
