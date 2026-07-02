@@ -9,6 +9,7 @@ import {
   banditPickHandler,
   banditLearnHandler,
   banditRecoveryHandler,
+  banditTrainHandler,
 } from './routes/bandit.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -32,6 +33,7 @@ app.post('/api/research-social-proof', researchSocialProofHandler)
 app.post('/api/bandit/pick', banditPickHandler)
 app.post('/api/bandit/learn', banditLearnHandler)
 app.get('/api/bandit/recovery', banditRecoveryHandler)
+app.post('/api/bandit/train', banditTrainHandler)
 
 // Browser UI.
 app.use(express.static(resolve(__dirname, '../public')))

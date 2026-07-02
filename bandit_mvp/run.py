@@ -48,27 +48,36 @@ def train(mode: str, rounds: int, seed: int = 0) -> Bandit:
     return b
 
 
-def train_from_logs(rounds: int, seed: int = 0, epochs: int = LOG_EPOCHS) -> Bandit:
+def train_from_logs(
+    rounds: int = 0,
+    seed: int = 0,
+    epochs: int = LOG_EPOCHS,
+    rows: list[dict] | None = None,
+) -> tuple[Bandit, list[dict]]:
     """Train on real logged sends: (context, recipe, outcome, propensity) from the DB.
 
     Each logged send is fed to VW as a single-action cb example (the action that was
     actually sent). When a live-bandit propensity was logged it is used for the unbiased
     update; synthetic backfill has none, so we warm-start at propensity 1.0. ``rounds``
     caps how many logged rows are pulled; ``epochs`` reshuffles and replays them so the
-    small log is seen enough times to converge.
+    small log is seen enough times to converge. Pass ``rows`` to reuse an already-fetched
+    log. Returns ``(bandit, curve)`` where curve is a list of ``{step, avgReward}``.
     """
     import db
 
-    rows = db.fetch_training_data(limit=rounds if rounds > 0 else None)
+    if rows is None:
+        rows = db.fetch_training_data(limit=rounds if rounds > 0 else None)
     if not rows:
         raise SystemExit(
             "No logged outcomes found. Set DATABASE_URL and populate the send/metrics "
             "tables first (see bandit_mvp/synth_outcomes.sql), then retry --mode real."
         )
 
+    rows = list(rows)
     rng = random.Random(seed)
     b = Bandit(seed=seed)
     window: deque[float] = deque(maxlen=ROLLING_WINDOW)
+    curve: list[dict] = []
     print(f"  loaded {len(rows)} logged sends; replaying {epochs} epoch(s)")
 
     step = 0
@@ -82,26 +91,32 @@ def train_from_logs(rounds: int, seed: int = 0, epochs: int = LOG_EPOCHS) -> Ban
             step += 1
             if step % PRINT_EVERY == 0:
                 avg = sum(window) / len(window)
+                curve.append({"step": step, "avgReward": round(avg, 4)})
                 print(f"  step {step:>7d}   rolling avg reward (last {len(window)}): {avg:.3f}")
 
-    return b
+    return b, curve
 
 
-def log_policy_value(b: Bandit, trials: int = 3000, seed: int = 321) -> None:
-    """Validation for real-log training: does the policy prefer higher-reward recipes?
+def compute_policy_value(
+    b: Bandit,
+    rows: list[dict] | None = None,
+    trials: int = 3000,
+    seed: int = 321,
+) -> dict | None:
+    """Measure whether the trained policy prefers higher-reward recipes.
 
     The per-lever recovery check assumes independent levers; real (and the synthetic grid)
-    data has correlated levers, so instead we measure policy VALUE. We build candidate sets
+    data has correlated levers, so instead we measure policy VALUE: build candidate sets
     from the actual logged recipes, let the greedy policy choose, and compare the empirical
-    mean reward of chosen recipes against the mean reward of a random pick. A positive lift
-    is the proof the pipeline learned something from the logs.
+    mean reward of chosen recipes against a random pick. A positive lift is the proof the
+    pipeline learned something. Returns a dict of numbers (or None if there are no logs).
     """
     import db
 
-    rows = db.fetch_training_data()
+    if rows is None:
+        rows = db.fetch_training_data()
     if not rows:
-        print("  (no logs to evaluate)")
-        return
+        return None
 
     # Empirical mean reward per distinct recipe (its "true" value from the logs).
     sums: dict[tuple, float] = {}
@@ -128,14 +143,56 @@ def log_policy_value(b: Bandit, trials: int = 3000, seed: int = 321) -> None:
         picked_total += value[cand_keys[best]]
         random_total += sum(value[k] for k in cand_keys) / len(cand_keys)
 
-    policy_value = picked_total / trials
+    greedy = picked_total / trials
     random_value = random_total / trials
+    lift = greedy - random_value
+    return {
+        "baseline": round(baseline, 4),
+        "random": round(random_value, 4),
+        "greedy": round(greedy, 4),
+        "lift": round(lift, 4),
+        "learned": bool(lift > 0.02),
+        "trials": trials,
+        "distinctRecipes": len(keys),
+    }
+
+
+def log_policy_value(b: Bandit, trials: int = 3000, seed: int = 321) -> None:
+    """Terminal wrapper around compute_policy_value."""
+    pv = compute_policy_value(b, trials=trials, seed=seed)
+    if not pv:
+        print("  (no logs to evaluate)")
+        return
     print("\nPolicy-value check (higher = the policy prefers better recipes):")
-    print(f"  logged baseline mean reward : {baseline:.3f}")
-    print(f"  random pick from candidates : {random_value:.3f}")
-    print(f"  greedy policy pick          : {policy_value:.3f}")
-    lift = policy_value - random_value
-    print(f"  lift over random            : {lift:+.3f}  ({'LEARNED' if lift > 0.02 else 'no clear gain'})")
+    print(f"  logged baseline mean reward : {pv['baseline']:.3f}")
+    print(f"  random pick from candidates : {pv['random']:.3f}")
+    print(f"  greedy policy pick          : {pv['greedy']:.3f}")
+    tag = "LEARNED" if pv["learned"] else "no clear gain"
+    print(f"  lift over random            : {pv['lift']:+.3f}  ({tag})")
+
+
+def train_and_evaluate(
+    rounds: int = 0,
+    seed: int = 0,
+    epochs: int = LOG_EPOCHS,
+    trials: int = 3000,
+) -> tuple[Bandit, dict]:
+    """Train on the log and evaluate in one call (used by the HTTP service).
+
+    Returns ``(bandit, stats)`` where stats = ``{loaded, epochs, curve, policyValue}``.
+    Fetches the log once and reuses it for both training and evaluation.
+    """
+    import db
+
+    rows = db.fetch_training_data(limit=rounds if rounds > 0 else None)
+    if not rows:
+        raise RuntimeError(
+            "No logged outcomes found. Set DATABASE_URL and populate the send/metrics "
+            "tables (see bandit_mvp/synth_outcomes.sql)."
+        )
+    b, curve = train_from_logs(rounds=rounds, seed=seed, epochs=epochs, rows=rows)
+    pv = compute_policy_value(b, rows=rows, trials=trials, seed=seed + 1)
+    return b, {"loaded": len(rows), "epochs": epochs, "curve": curve, "policyValue": pv}
 
 
 def recovery_check(b: Bandit, trials: int = 4000, seed: int = 999) -> None:
@@ -200,7 +257,7 @@ def main() -> None:
 
     print(f"Training: mode={args.mode} rounds={args.rounds}")
     if args.mode == "real":
-        b = train_from_logs(args.rounds, args.seed)
+        b, _ = train_from_logs(args.rounds, args.seed)
     else:
         b = train(args.mode, args.rounds, args.seed)
 

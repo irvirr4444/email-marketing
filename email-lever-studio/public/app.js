@@ -164,6 +164,52 @@ async function recovery() {
   }
 }
 
+async function train() {
+  setStatus($('pickStatus'), 'Training on logged sends... (this takes a few seconds)', '')
+  $('trainBtn').disabled = true
+  try {
+    const res = await fetch('/api/bandit/train', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'training failed')
+
+    const pv = data.policyValue || {}
+    const learned = pv.learned
+    $('trainingMeta').innerHTML =
+      `Trained on <b>${data.loaded}</b> logged sends over <b>${data.epochs}</b> epochs ` +
+      `· ${pv.distinctRecipes ?? '?'} distinct recipes`
+
+    const row = (label, val, extra = '') =>
+      `<div class="recovery-row"><span class="muted">${label}</span>` +
+      `<span class="top">${val}${extra}</span></div>`
+    const f = (x) => (x ?? 0).toFixed(3)
+    $('trainingValue').innerHTML =
+      row('logged baseline reward', f(pv.baseline)) +
+      row('random pick from candidates', f(pv.random)) +
+      row('greedy policy pick', f(pv.greedy)) +
+      row(
+        'lift over random',
+        `${pv.lift >= 0 ? '+' : ''}${f(pv.lift)}`,
+        learned
+          ? ' <b style="color:var(--good)">LEARNED</b>'
+          : ' <span class="muted">no clear gain</span>',
+      )
+
+    const curve = (data.curve || []).map((p) => `${p.step}: ${p.avgReward.toFixed(3)}`).join('  ·  ')
+    $('trainingCurve').innerHTML = curve ? `reward curve &mdash; ${curve}` : ''
+
+    $('trainingPanel').classList.remove('hidden')
+    setStatus($('pickStatus'), 'Training complete. The trained policy is now live for Pick levers.', 'ok')
+  } catch (err) {
+    setStatus($('pickStatus'), String(err.message || err), 'err')
+  } finally {
+    $('trainBtn').disabled = false
+  }
+}
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -173,6 +219,7 @@ function escapeHtml(s) {
 
 $('pickBtn').addEventListener('click', pick)
 $('renderBtn').addEventListener('click', render)
+$('trainBtn').addEventListener('click', train)
 $('recoveryBtn').addEventListener('click', recovery)
 $('thumbUp').addEventListener('click', () => learn({ reward: 1 }, 'Marked good'))
 $('thumbDown').addEventListener('click', () => learn({ reward: 0 }, 'Marked bad'))

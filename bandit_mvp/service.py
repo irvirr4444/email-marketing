@@ -25,6 +25,8 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+import db
+import run
 from bandit import Bandit
 from levers import (
     CONTEXT,
@@ -81,6 +83,13 @@ class LearnRequest(BaseModel):
     decisionId: str
     reward: float | None = None
     events: dict[str, bool] | None = None
+
+
+class TrainRequest(BaseModel):
+    rounds: int | None = None   # cap on logged rows pulled; 0/None = all
+    epochs: int | None = None   # replays over the log
+    seed: int | None = None
+    trials: int | None = None   # policy-value evaluation trials
 
 
 def _normalize_context(raw: dict[str, str] | None) -> dict[str, str]:
@@ -158,6 +167,35 @@ def learn(req: LearnRequest) -> dict[str, Any]:
         _bandit.save(POLICY_PATH)
 
     return {"ok": True, "reward": reward_value}
+
+
+@app.post("/train")
+def train(req: TrainRequest) -> dict[str, Any]:
+    """Train the live policy on the logged sends in Postgres and evaluate it.
+
+    Replaces the in-memory policy with the freshly trained one (so subsequent /pick uses
+    it) and persists it to policy.vw. Returns the reward curve + policy-value summary.
+    """
+    global _bandit
+    if not db.enabled():
+        raise HTTPException(
+            status_code=400,
+            detail="DATABASE_URL not set. Add it to bandit_mvp/.env to train on logged data.",
+        )
+    try:
+        with _lock:
+            trained, stats = run.train_and_evaluate(
+                rounds=req.rounds or 0,
+                seed=req.seed or 0,
+                epochs=req.epochs or run.LOG_EPOCHS,
+                trials=req.trials or 3000,
+            )
+            trained.save(POLICY_PATH)
+            _bandit = trained
+    except Exception as exc:  # surface DB / training errors to the UI as JSON
+        raise HTTPException(status_code=500, detail=f"training failed: {exc}")
+
+    return {"ok": True, **stats}
 
 
 @app.get("/recovery")

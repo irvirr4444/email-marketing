@@ -24,9 +24,31 @@ from __future__ import annotations
 
 import os
 from collections import Counter, defaultdict
+from pathlib import Path
 from typing import Any
 
 _DISABLED_LOGGED = False
+
+
+def _load_dotenv_files() -> None:
+    """Minimal .env loader (no dependency). Loads the repo-root .env first, then
+    bandit_mvp/.env so the closer file wins. Values from .env OVERRIDE the shell so the
+    file is the single source of truth for this project (a stale exported DATABASE_URL in
+    the shell will not silently shadow the .env).
+    """
+    here = Path(__file__).resolve().parent
+    for candidate in (here.parent / ".env", here / ".env"):
+        if not candidate.exists():
+            continue
+        for line in candidate.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+
+_load_dotenv_files()
 
 
 def _database_url() -> str | None:

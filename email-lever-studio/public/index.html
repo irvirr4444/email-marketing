@@ -184,6 +184,7 @@
 
         <div class="actions">
           <button id="pickBtn">Pick levers</button>
+          <button id="trainBtn" class="secondary">Train on logged data</button>
           <button id="recoveryBtn" class="secondary">Show what it learned</button>
         </div>
         <div id="pickStatus" class="status"></div>
@@ -191,6 +192,20 @@
 
       <!-- RIGHT: results -->
       <div class="stack">
+        <div id="trainingPanel" class="panel hidden">
+          <h2>Training on logged data</h2>
+          <div class="muted" style="margin-bottom:10px">
+            Trains the policy on the sends logged in Postgres
+            (<code>generated_email</code> &rarr; <code>generated_email_send</code> &rarr;
+            <code>email_metrics</code>) and measures whether it prefers higher-reward
+            recipes. A positive <b>lift over random</b> means it learned. The trained
+            policy becomes live for the next <b>Pick levers</b>.
+          </div>
+          <div id="trainingMeta" class="muted" style="margin-bottom:10px"></div>
+          <div id="trainingValue"></div>
+          <div id="trainingCurve" class="muted" style="margin-top:10px"></div>
+        </div>
+
         <div id="leversPanel" class="panel hidden">
           <h2>Chosen lever recipe</h2>
           <div id="pickMeta" class="muted" style="margin-bottom:12px"></div>

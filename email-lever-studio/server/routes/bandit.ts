@@ -43,3 +43,11 @@ export async function banditRecoveryHandler(req: Request, res: Response): Promis
   const trials = Number(req.query.trials ?? 2000)
   await forward(res, `/recovery?trials=${trials}`, { method: 'GET' })
 }
+
+export async function banditTrainHandler(req: Request, res: Response): Promise<void> {
+  await forward(res, '/train', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(req.body ?? {}),
+  })
+}
