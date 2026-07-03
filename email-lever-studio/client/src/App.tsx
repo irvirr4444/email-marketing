@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Check, Copy, ChevronDown, Loader2, ArrowRight, Zap } from 'lucide-react'
+import { Badge } from '@ui/components/base/badges/badges'
+import { Button } from '@ui/components/base/buttons/button'
+import { Input } from '@ui/components/base/input/input'
+import { NativeSelect } from '@ui/components/base/select/select-native'
+import { ProgressBar } from '@ui/components/base/progress-indicators/progress-indicators'
 import {
   generateEmail,
   DEFAULT_BANDIT_CONTEXT,
@@ -179,149 +184,146 @@ export default function App() {
   const showInputPanel = appState === 'idle' || appState === 'generating' || appState === 'error'
 
   return (
-    <div className="min-h-screen bg-background py-16 px-5">
-      <div className="max-w-[960px] mx-auto">
-        <header className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-secondary border border-border">
-            <Zap className="w-3 h-3 text-primary" fill="currentColor" />
-            <span className="text-xs font-semibold text-primary tracking-widest uppercase">
-              Email Lever Studio
-            </span>
+    <div className="min-h-dvh bg-primary_alt py-16 px-4">
+      <div className="mx-auto w-full max-w-5xl">
+        <header className="text-center">
+          <div className="mb-6 flex justify-center">
+            <Badge color="brand" className="inline-flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold tracking-[0.12em] uppercase">
+                Email Lever Studio
+              </span>
+            </Badge>
           </div>
-          <h1 className="text-[2.6rem] leading-[1.15] font-semibold text-foreground mb-4 tracking-tight">
-            Paste your company and product —<br className="hidden sm:block" />
-            <span className="text-primary"> get a research&#8209;backed</span> cold email
+
+          <h1 className="text-display-md md:text-display-lg font-semibold text-primary tracking-tight">
+            Paste your company and product —{' '}
+            <span className="text-brand-secondary">get a research‑backed</span> cold email
           </h1>
-          <p className="text-[0.9375rem] text-muted-foreground max-w-[460px] mx-auto leading-relaxed">
+          <p className="mt-3 text-md text-tertiary max-w-xl mx-auto">
             In about 20 seconds. Grounded in real social proof, a clear persuasion
             strategy, and a subject line worth opening.
           </p>
         </header>
 
         {showInputPanel && (
-          <section className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.06)] p-7 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Company
-                </label>
-                <input
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void handleGenerate()}
-                  placeholder="https://mycompany.com"
-                  disabled={appState === 'generating'}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5 ml-0.5">
-                  Name or website URL
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Product
-                </label>
-                <input
-                  type="text"
-                  value={product}
-                  onChange={(e) => setProduct(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void handleGenerate()}
-                  placeholder="https://myproduct.com"
-                  disabled={appState === 'generating'}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5 ml-0.5">
-                  Name, description, or product page URL
-                </p>
-              </div>
+          <section className="mt-10 mb-6 rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Company"
+                value={company}
+                onChange={setCompany}
+                onKeyDown={(e) => e.key === 'Enter' && void handleGenerate()}
+                placeholder="https://mycompany.com"
+                isDisabled={appState === 'generating'}
+                hint="Name or website URL"
+              />
+              <Input
+                label="Product"
+                value={product}
+                onChange={setProduct}
+                onKeyDown={(e) => e.key === 'Enter' && void handleGenerate()}
+                placeholder="https://myproduct.com"
+                isDisabled={appState === 'generating'}
+                hint="Name, description, or product page URL"
+              />
             </div>
 
-            <div className="mb-5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2.5">
+            <div className="mt-6">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
                 Audience
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {AUDIENCE_FIELDS.map((field) => (
-                  <div key={field.key}>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      {field.label}
-                    </label>
-                    <select
-                      value={audience[field.key]}
-                      onChange={(e) =>
-                        setAudience((prev) => ({ ...prev, [field.key]: e.target.value }))
-                      }
-                      disabled={appState === 'generating'}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {field.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <NativeSelect
+                    key={field.key}
+                    label={field.label}
+                    size="sm"
+                    value={audience[field.key]}
+                    disabled={appState === 'generating'}
+                    onChange={(e) =>
+                      setAudience((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                    options={field.options}
+                  />
                 ))}
               </div>
             </div>
 
             {appState === 'error' && errorMessage && (
-              <p className="text-sm text-destructive mb-4 text-center">{errorMessage}</p>
+              <p className="mt-5 text-sm text-error-primary text-center">{errorMessage}</p>
             )}
 
-            <button
-              onClick={() => void handleGenerate()}
-              disabled={!canGenerate || appState === 'generating'}
-              className="w-full py-3.5 px-6 rounded-xl font-medium text-sm transition-all duration-150 active:scale-[0.985] flex items-center justify-center gap-2 select-none"
-              style={{
-                backgroundColor:
-                  !canGenerate || appState === 'generating'
-                    ? 'var(--muted)'
-                    : 'var(--primary)',
-                color:
-                  !canGenerate || appState === 'generating'
-                    ? 'var(--muted-foreground)'
-                    : 'var(--primary-foreground)',
-                cursor:
-                  !canGenerate || appState === 'generating'
-                    ? 'not-allowed'
-                    : 'pointer',
-              }}
-            >
-              {appState === 'generating' ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating…
-                </>
-              ) : (
-                <>
-                  Generate Email
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            <div className="mt-6">
+              <Button
+                className="w-full"
+                size="xl"
+                iconTrailing={ArrowRight}
+                isDisabled={!canGenerate || appState === 'generating'}
+                isLoading={appState === 'generating'}
+                showTextWhileLoading
+                onClick={() => void handleGenerate()}
+              >
+                Generate email
+              </Button>
+            </div>
           </section>
         )}
 
         {appState === 'generating' && (
           <section className="mb-6">
-            <div className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.06)] p-7 mb-4">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-5">
-                In progress
-              </p>
-              <StepTracker
-                steps={STEPS}
-                currentStep={currentStep}
-                completedSteps={completedSteps}
-                layout="horizontal"
-              />
-              <StepTracker
-                steps={STEPS}
-                currentStep={currentStep}
-                completedSteps={completedSteps}
-                layout="vertical"
-              />
+            <div className="rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8 mb-4">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+                  In progress
+                </p>
+                <span className="text-xs font-medium text-tertiary tabular-nums">
+                  {Math.round((completedSteps.length / STEPS.length) * 100)}%
+                </span>
+              </div>
+
+              <div className="mt-4">
+                <ProgressBar
+                  value={(completedSteps.length / STEPS.length) * 100}
+                  className="h-2.5"
+                />
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {STEPS.map((label, i) => {
+                  const isDone = completedSteps.includes(i)
+                  const isActive = currentStep === i && !isDone
+                  return (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 rounded-xl border border-secondary bg-secondary px-4 py-3"
+                    >
+                      <div className="flex size-8 items-center justify-center rounded-full bg-primary ring-1 ring-primary">
+                        {isDone ? (
+                          <Check className="h-4 w-4 text-fg-success-primary" />
+                        ) : isActive ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-fg-brand-primary" />
+                        ) : (
+                          <span className="text-xs font-semibold text-tertiary">
+                            {i + 1}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={
+                          isDone
+                            ? 'text-sm font-medium text-primary'
+                            : isActive
+                              ? 'text-sm font-medium text-secondary'
+                              : 'text-sm font-medium text-tertiary'
+                        }
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
@@ -339,37 +341,35 @@ export default function App() {
               transform: resultsVisible ? 'translateY(0)' : 'translateY(10px)',
             }}
           >
-            <div className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.07)] p-7 flex flex-col">
-              <div className="mb-5">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">
-                  Subject
-                </p>
-                <input
-                  type="text"
+            <div className="rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8 flex flex-col">
+              <div className="mb-6 space-y-4">
+                <Input
+                  label="Subject"
+                  size="lg"
                   value={draft.subject}
-                  onChange={(e) => updateDraft({ subject: e.target.value })}
-                  className="w-full text-lg font-semibold text-foreground leading-snug mb-2 bg-transparent border border-transparent hover:border-border focus:border-primary/40 focus:ring-2 focus:ring-ring/40 rounded-lg px-2 py-1 -mx-2 outline-none transition-all duration-150"
-                  style={{ letterSpacing: '-0.01em' }}
+                  onChange={(value) => updateDraft({ subject: value })}
+                  inputClassName="font-semibold"
                 />
                 {draft.preheader !== undefined && draft.preheader !== '' && (
-                  <input
-                    type="text"
+                  <Input
+                    label="Preheader"
+                    size="md"
                     value={draft.preheader}
-                    onChange={(e) => updateDraft({ preheader: e.target.value })}
-                    placeholder="Preheader (optional)"
-                    className="w-full text-sm text-muted-foreground italic leading-relaxed bg-transparent border border-transparent hover:border-border focus:border-primary/40 focus:ring-2 focus:ring-ring/40 rounded-lg px-2 py-1 -mx-2 outline-none transition-all duration-150"
+                    onChange={(value) => updateDraft({ preheader: value })}
+                    placeholder="Optional"
+                    inputClassName="italic"
                   />
                 )}
               </div>
 
-              <div className="border-t border-border pt-5 flex-1">
+              <div className="border-t border-secondary pt-6 flex-1">
                 <EditableBody
                   value={draft.body}
                   onChange={(body) => updateDraft({ body })}
                 />
               </div>
 
-              <div className="flex gap-2 mt-6 pt-5 border-t border-border flex-wrap">
+              <div className="flex gap-2 mt-6 pt-6 border-t border-secondary flex-wrap">
                 <CopyButton
                   label="Copy subject"
                   copied={copiedField === 'subject'}
@@ -389,7 +389,7 @@ export default function App() {
             </div>
 
             <div
-              className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.07)] p-7 flex flex-col gap-5 transition-all duration-500"
+              className="rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8 flex flex-col gap-6 transition-all duration-500"
               style={{
                 opacity: resultsVisible ? 1 : 0,
                 transform: resultsVisible ? 'translateY(0)' : 'translateY(10px)',
@@ -397,63 +397,35 @@ export default function App() {
               }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
                     Strategy behind this email
                   </p>
                   {leverSource && (
                     <span
-                      className="px-2 py-0.5 rounded-full text-[0.625rem] font-semibold uppercase tracking-wide flex-shrink-0"
-                      style={{
-                        backgroundColor:
-                          leverSource === 'bandit'
-                            ? 'rgba(191,87,48,0.09)'
-                            : 'var(--secondary)',
-                        border:
-                          leverSource === 'bandit'
-                            ? '1px solid rgba(191,87,48,0.3)'
-                            : '1px solid var(--border)',
-                        color:
-                          leverSource === 'bandit'
-                            ? 'var(--primary)'
-                            : 'var(--muted-foreground)',
-                      }}
                       title={
                         leverSource === 'bandit'
                           ? 'Levers picked by the trained contextual bandit policy'
                           : 'Bandit service unreachable — levers suggested by Claude'
                       }
                     >
-                      {leverSource === 'bandit' ? 'Bandit policy' : 'Claude fallback'}
+                      <Badge color={leverSource === 'bandit' ? 'brand' : 'gray'}>
+                        {leverSource === 'bandit' ? 'Bandit policy' : 'Claude fallback'}
+                      </Badge>
                     </span>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {leverChips.map((lever) => (
-                    <div
+                    <Badge
                       key={lever.label}
-                      className="px-2.5 py-1 rounded-full text-[0.75rem] flex items-center gap-1 flex-shrink-0"
-                      style={{
-                        backgroundColor: lever.primary
-                          ? 'rgba(191,87,48,0.07)'
-                          : 'var(--secondary)',
-                        border: lever.primary
-                          ? '1px solid rgba(191,87,48,0.3)'
-                          : '1px solid var(--border)',
-                      }}
+                      color={lever.primary ? 'brand' : 'gray'}
+                      size="sm"
+                      className="flex items-center gap-1.5"
                     >
-                      <span className="text-muted-foreground">{lever.label}:</span>
-                      <span
-                        className="font-medium"
-                        style={{
-                          color: lever.primary
-                            ? 'var(--primary)'
-                            : 'var(--foreground)',
-                        }}
-                      >
-                        {lever.value}
-                      </span>
-                    </div>
+                      <span className="opacity-70">{lever.label}:</span>
+                      <span className="font-medium">{lever.value}</span>
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -462,17 +434,17 @@ export default function App() {
                 {strategyCards.map((card, i) => (
                   <div
                     key={card.category}
-                    className="border border-border rounded-xl overflow-hidden bg-background"
+                    className="rounded-xl overflow-hidden ring-1 ring-secondary_alt bg-primary"
                   >
                     <button
                       onClick={() => toggleCard(i)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/60 transition-colors duration-150"
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-primary_hover transition-colors duration-150"
                     >
-                      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.09em] text-foreground">
+                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
                         {card.category}
                       </span>
                       <ChevronDown
-                        className="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200"
+                        className="w-4 h-4 text-fg-quaternary transition-transform duration-200"
                         style={{
                           transform: expandedCards.includes(i)
                             ? 'rotate(180deg)'
@@ -481,18 +453,15 @@ export default function App() {
                       />
                     </button>
                     {expandedCards.includes(i) && (
-                      <div className="px-4 pb-4 border-t border-border">
+                      <div className="px-4 pb-4 border-t border-secondary">
                         <div className="flex flex-wrap gap-1.5 mt-3 mb-2.5">
                           {card.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-0.5 rounded-full text-xs text-muted-foreground bg-secondary border border-border"
-                            >
+                            <Badge key={tag} color="gray" size="sm">
                               {tag}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
-                        <p className="text-xs text-muted-foreground italic leading-relaxed">
+                        <p className="text-sm text-tertiary italic leading-relaxed">
                           {card.reasoning}
                         </p>
                       </div>
@@ -502,33 +471,33 @@ export default function App() {
               </div>
 
               {proofFacts.length > 0 && (
-                <div className="border border-border rounded-xl overflow-hidden bg-background">
+                <div className="rounded-xl overflow-hidden ring-1 ring-secondary_alt bg-primary">
                   <button
                     onClick={() => setProofExpanded(!proofExpanded)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/60 transition-colors duration-150"
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-primary_hover transition-colors duration-150"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.09em] text-foreground">
+                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
                         Proof discovered
                       </span>
-                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[0.625rem] font-semibold bg-primary text-primary-foreground leading-none">
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[0.625rem] font-semibold bg-brand-solid text-white leading-none">
                         {proofFacts.length}
                       </span>
                     </div>
                     <ChevronDown
-                      className="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200"
+                      className="w-4 h-4 text-fg-quaternary transition-transform duration-200"
                       style={{
                         transform: proofExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                       }}
                     />
                   </button>
                   {proofExpanded && (
-                    <div className="px-4 pb-4 border-t border-border">
+                    <div className="px-4 pb-4 border-t border-secondary">
                       <div className="flex flex-col gap-1.5 mt-3">
                         {proofFacts.map((fact) => (
                           <span
                             key={fact}
-                            className="px-3 py-2 rounded-lg text-xs text-muted-foreground bg-secondary border border-border leading-relaxed"
+                            className="px-3 py-2 rounded-lg text-sm text-tertiary bg-secondary ring-1 ring-secondary_alt leading-relaxed"
                           >
                             {fact}
                           </span>
@@ -547,19 +516,16 @@ export default function App() {
             className="text-center mt-8 transition-opacity duration-500"
             style={{ opacity: resultsVisible ? 1 : 0 }}
           >
-            <button
-              onClick={handleReset}
-              className="text-[0.8125rem] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 decoration-border"
-            >
+            <Button color="link-gray" size="lg" onClick={handleReset}>
               Start over
-            </button>
+            </Button>
           </div>
         )}
 
         <PolicyPanel />
 
         <footer className="text-center mt-16 mb-2">
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-tertiary">
             Email Lever Studio &middot; Built for cold outreach that actually works
           </p>
         </footer>
@@ -568,147 +534,29 @@ export default function App() {
   )
 }
 
-function StepTracker({
-  steps,
-  currentStep,
-  completedSteps,
-  layout,
-}: {
-  steps: string[]
-  currentStep: number
-  completedSteps: number[]
-  layout: 'horizontal' | 'vertical'
-}) {
-  if (layout === 'horizontal') {
-    return (
-      <div className="hidden md:flex items-start">
-        {steps.map((step, i) => {
-          const isDone = completedSteps.includes(i)
-          const isActive = currentStep === i && !isDone
-          return (
-            <div key={step} className="flex items-start flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <StepDot isDone={isDone} isActive={isActive} size="md" />
-                <StepLabel step={step} isDone={isDone} isActive={isActive} />
-              </div>
-              {i < steps.length - 1 && (
-                <div
-                  className="flex-shrink-0 h-px mt-4 transition-colors duration-500"
-                  style={{
-                    backgroundColor: completedSteps.includes(i)
-                      ? 'var(--primary)'
-                      : 'var(--border)',
-                    width: '40px',
-                    minWidth: '20px',
-                  }}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex md:hidden flex-col gap-3.5">
-      {steps.map((step, i) => {
-        const isDone = completedSteps.includes(i)
-        const isActive = currentStep === i && !isDone
-        return (
-          <div key={step} className="flex items-center gap-3">
-            <StepDot isDone={isDone} isActive={isActive} size="sm" />
-            <StepLabel step={step} isDone={isDone} isActive={isActive} inline />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function StepDot({
-  isDone,
-  isActive,
-  size,
-}: {
-  isDone: boolean
-  isActive: boolean
-  size: 'sm' | 'md'
-}) {
-  const dim = size === 'md' ? 'w-8 h-8' : 'w-7 h-7'
-  return (
-    <div
-      className={`${dim} rounded-full flex items-center justify-center transition-all duration-400 flex-shrink-0`}
-      style={{
-        backgroundColor: isDone ? 'var(--primary)' : 'var(--card)',
-        border: isDone
-          ? '2px solid var(--primary)'
-          : isActive
-            ? '2px solid var(--primary)'
-            : '2px solid var(--border)',
-      }}
-    >
-      {isDone ? (
-        <Check
-          className={size === 'md' ? 'w-3.5 h-3.5 text-primary-foreground' : 'w-3 h-3 text-primary-foreground'}
-          strokeWidth={2.5}
-        />
-      ) : isActive ? (
-        <div className={`${size === 'md' ? 'w-2.5 h-2.5' : 'w-2 h-2'} rounded-full bg-primary animate-pulse`} />
-      ) : (
-        <div className={`${size === 'md' ? 'w-2 h-2' : 'w-1.5 h-1.5'} rounded-full bg-border`} />
-      )}
-    </div>
-  )
-}
-
-function StepLabel({
-  step,
-  isDone,
-  isActive,
-  inline,
-}: {
-  step: string
-  isDone: boolean
-  isActive: boolean
-  inline?: boolean
-}) {
-  return (
-    <span
-      className={`${inline ? 'text-sm' : 'text-[0.75rem] text-center mt-2 leading-snug px-1'} transition-colors duration-300`}
-      style={{
-        color: isDone
-          ? 'var(--foreground)'
-          : isActive
-            ? 'var(--primary)'
-            : 'var(--muted-foreground)',
-        fontWeight: isDone || isActive ? 500 : 400,
-      }}
-    >
-      {step}
-    </span>
-  )
-}
-
 function SkeletonCard({ variant }: { variant: 'email' | 'strategy' }) {
   if (variant === 'email') {
     return (
-      <div className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.06)] p-7">
-        <div className="h-5 bg-muted rounded-full w-3/4 mb-2.5 animate-pulse" />
-        <div className="h-3.5 bg-muted rounded-full w-1/2 mb-7 animate-pulse" style={{ animationDelay: '80ms' }} />
-        <div className="h-px bg-muted mb-6" />
+      <div className="rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8">
+        <div className="h-5 bg-secondary rounded-full w-3/4 mb-2.5 animate-pulse" />
+        <div className="h-3.5 bg-secondary rounded-full w-1/2 mb-7 animate-pulse" style={{ animationDelay: '80ms' }} />
+        <div className="h-px bg-secondary mb-6" />
         <div className="space-y-2.5">
           {[100, 96, 91, 100, 78, 94, 88, 100, 65, 82, 100, 70].map((w, i) => (
             <div
               key={i}
-              className="h-3 bg-muted rounded-full animate-pulse"
+              className="h-3 bg-secondary rounded-full animate-pulse"
               style={{ width: `${w}%`, animationDelay: `${i * 50}ms` }}
             />
           ))}
         </div>
-        <div className="flex gap-2 mt-8 pt-5 border-t border-border">
+        <div className="flex gap-2 mt-8 pt-6 border-t border-secondary">
           {[88, 76, 70].map((w, i) => (
-            <div key={i} className="h-7 bg-muted rounded-lg animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 60}ms` }} />
+            <div
+              key={i}
+              className="h-7 bg-secondary rounded-lg animate-pulse"
+              style={{ width: `${w}px`, animationDelay: `${i * 60}ms` }}
+            />
           ))}
         </div>
       </div>
@@ -716,13 +564,13 @@ function SkeletonCard({ variant }: { variant: 'email' | 'strategy' }) {
   }
 
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.06)] p-7">
-      <div className="h-3.5 bg-muted rounded-full w-1/2 mb-5 animate-pulse" />
+    <div className="rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt p-6 md:p-8">
+      <div className="h-3.5 bg-secondary rounded-full w-1/2 mb-5 animate-pulse" />
       <div className="flex flex-wrap gap-2 mb-6">
         {[78, 62, 70, 88, 58, 74, 84, 66, 76].map((w, i) => (
           <div
             key={i}
-            className="h-6 bg-muted rounded-full animate-pulse"
+            className="h-6 bg-secondary rounded-full animate-pulse"
             style={{ width: `${w}px`, animationDelay: `${i * 70}ms` }}
           />
         ))}
@@ -731,7 +579,7 @@ function SkeletonCard({ variant }: { variant: 'email' | 'strategy' }) {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-11 bg-muted rounded-xl animate-pulse"
+            className="h-11 bg-secondary rounded-xl animate-pulse"
             style={{ animationDelay: `${i * 80}ms` }}
           />
         ))}
@@ -750,22 +598,19 @@ function CopyButton({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
+      size="sm"
+      color="secondary"
+      iconLeading={copied ? Check : Copy}
       onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-background hover:bg-secondary transition-all duration-150 text-foreground"
     >
-      {copied ? (
-        <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
-      ) : (
-        <Copy className="w-3 h-3 text-muted-foreground" />
-      )}
-      {copied ? 'Copied!' : label}
-    </button>
+      {copied ? 'Copied' : label}
+    </Button>
   )
 }
 
 const BODY_TEXT_CLASS =
-  'w-full font-sans text-[0.875rem] leading-[1.72] whitespace-pre-wrap px-2 py-2 -mx-2'
+  'w-full text-sm leading-relaxed whitespace-pre-wrap px-2 py-2 -mx-2'
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g
 
@@ -776,7 +621,7 @@ function renderTextWithLinks(text: string) {
       return (
         <span
           key={i}
-          className="text-primary underline underline-offset-2"
+          className="text-brand-secondary underline underline-offset-3"
         >
           {part}
         </span>
@@ -816,7 +661,7 @@ function EditableBody({
       <div
         ref={mirrorRef}
         aria-hidden
-        className={`${BODY_TEXT_CLASS} text-foreground pointer-events-none`}
+        className={`${BODY_TEXT_CLASS} text-secondary pointer-events-none`}
       >
         {value ? renderTextWithLinks(value) : '\u00a0'}
       </div>
@@ -827,7 +672,7 @@ function EditableBody({
         onInput={syncHeight}
         rows={1}
         spellCheck={false}
-        className={`${BODY_TEXT_CLASS} absolute inset-0 text-transparent caret-foreground selection:bg-primary/20 bg-transparent border-none outline-none resize-none overflow-hidden`}
+        className={`${BODY_TEXT_CLASS} absolute inset-0 text-transparent caret-brand selection:bg-utility-brand-100 bg-transparent border-none outline-none resize-none overflow-hidden`}
         style={{ WebkitTextFillColor: 'transparent' }}
       />
     </div>

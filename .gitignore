@@ -13,3 +13,4 @@ email-lever-studio/dist/
 *.docx
 .agents/
 skills-lock.json
+.tmp/

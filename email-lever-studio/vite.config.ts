@@ -7,9 +7,22 @@ export default defineConfig({
   root: 'client',
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './client/src'),
-    },
+    // IMPORTANT: don't alias bare "@" because it breaks scoped packages like
+    // "@tailwindcss/typography" (it would get rewritten as a local path).
+    alias: [
+      {
+        find: /^@\//,
+        replacement: `${path.resolve(__dirname, './client/src/untitled-ui')}/`,
+      },
+      {
+        find: /^@ui\//,
+        replacement: `${path.resolve(__dirname, './client/src/untitled-ui')}/`,
+      },
+      {
+        find: /^@app\//,
+        replacement: `${path.resolve(__dirname, './client/src')}/`,
+      },
+    ],
   },
   server: {
     port: 5173,

@@ -239,3 +239,7 @@ DESCRIPTION:
 | Briefing a designer on what stats to visualize | Headline testing options |
 
 **Power move:** Run Prompt 1 first. Paste its output into Prompt 2 as additional context alongside the product description. The copywriter then has both the raw facts AND the writing brief — and the output will be significantly stronger.
+
+
+
+

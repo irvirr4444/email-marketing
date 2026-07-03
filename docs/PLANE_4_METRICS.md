@@ -7,7 +7,7 @@
 **Table:** `email_metrics` (1:1 with `email_message`)
 
 Plane 3 **measured** deliverability lives here. Plane 2 `email_context.prior_*` is **backfilled** from this table chronologically per contact.
-
+ 
 ---
 
 ## Delivery
@@ -108,10 +108,3 @@ score = conversion_value − (unsubscribe + complaint + deliverability_decay pen
 
 ---
 
-## Not in Plane 4
-
-| Plane | Examples |
-|-------|----------|
-| 3 Pre-send | SPF, spam-word score |
-| 5 | variant ID, bandit arm |
-| 6 | frequency caps |

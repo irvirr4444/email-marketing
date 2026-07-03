@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { BrainCircuit, ChevronDown, Loader2 } from 'lucide-react'
+import { BrainCircuit, ChevronDown } from 'lucide-react'
+import { Badge } from '@ui/components/base/badges/badges'
+import { Button } from '@ui/components/base/buttons/button'
 import {
   fetchRecovery,
   trainOnLoggedData,
@@ -51,61 +53,62 @@ export default function PolicyPanel() {
   const pv = trainResult?.policyValue
 
   return (
-    <section className="mt-10 bg-card rounded-2xl border border-border shadow-[0_2px_16px_rgba(28,24,20,0.06)] overflow-hidden">
+    <section className="mt-10 rounded-2xl bg-primary shadow-lg ring-1 ring-secondary_alt overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-7 py-4 text-left hover:bg-secondary/60 transition-colors duration-150"
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-primary_hover transition-colors duration-150"
       >
         <div className="flex items-center gap-2.5">
-          <BrainCircuit className="w-4 h-4 text-primary" />
-          <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-foreground">
+          <BrainCircuit className="w-4 h-4 text-fg-brand-primary" />
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
             Policy — the bandit that picks your levers
           </span>
         </div>
         <ChevronDown
-          className="w-4 h-4 text-muted-foreground transition-transform duration-200"
+          className="w-4 h-4 text-fg-quaternary transition-transform duration-200"
           style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
       </button>
 
       {expanded && (
-        <div className="px-7 pb-7 border-t border-border">
-          <p className="text-xs text-muted-foreground leading-relaxed mt-4 mb-5 max-w-[620px]">
+        <div className="px-6 pb-6 border-t border-secondary">
+          <p className="text-sm text-tertiary leading-relaxed mt-4 mb-5 max-w-2xl">
             The lever strategy for each email is chosen by a contextual bandit trained on
             logged sends (recipe → send → outcome in Postgres). Retrain it here; the fresh
             policy goes live for the next generation.
           </p>
 
           <div className="flex gap-2 flex-wrap mb-5">
-            <button
+            <Button
+              size="sm"
+              isLoading={training}
+              isDisabled={training}
               onClick={() => void handleTrain()}
-              disabled={training}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {training && <Loader2 className="w-3 h-3 animate-spin" />}
-              {training ? 'Training…' : 'Train on logged data'}
-            </button>
-            <button
+              Train on logged data
+            </Button>
+            <Button
+              size="sm"
+              color="secondary"
+              isLoading={sampling}
+              isDisabled={sampling}
               onClick={() => void handleRecovery()}
-              disabled={sampling}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium border border-border bg-background hover:bg-secondary transition-all duration-150 text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {sampling && <Loader2 className="w-3 h-3 animate-spin" />}
-              {sampling ? 'Sampling…' : 'What it learned'}
-            </button>
+              What it learned
+            </Button>
           </div>
 
-          {error && <p className="text-sm text-destructive mb-4">{error}</p>}
+          {error && <p className="text-sm text-error-primary mb-4">{error}</p>}
 
           {trainResult && (
             <div className="mb-5">
-              <p className="text-xs text-muted-foreground mb-3">
-                Trained on <b className="text-foreground">{trainResult.loaded}</b> logged
-                sends over <b className="text-foreground">{trainResult.epochs}</b> epochs
+              <p className="text-sm text-tertiary mb-3">
+                Trained on <b className="text-primary">{trainResult.loaded}</b> logged
+                sends over <b className="text-primary">{trainResult.epochs}</b> epochs
                 {pv ? ` · ${pv.distinctRecipes} distinct recipes` : ''}
               </p>
               {pv && (
-                <div className="border border-border rounded-xl bg-background divide-y divide-border">
+                <div className="rounded-xl bg-primary ring-1 ring-secondary_alt divide-y divide-secondary">
                   <StatRow label="Logged baseline reward" value={pv.baseline.toFixed(3)} />
                   <StatRow label="Random pick from candidates" value={pv.random.toFixed(3)} />
                   <StatRow label="Greedy policy pick" value={pv.greedy.toFixed(3)} />
@@ -118,7 +121,7 @@ export default function PolicyPanel() {
                 </div>
               )}
               {trainResult.curve.length > 0 && (
-                <p className="text-[0.6875rem] text-muted-foreground mt-3 leading-relaxed">
+                <p className="text-xs text-tertiary mt-3 leading-relaxed">
                   Reward curve —{' '}
                   {trainResult.curve
                     .map((p) => `${p.step}: ${p.avgReward.toFixed(3)}`)
@@ -130,11 +133,11 @@ export default function PolicyPanel() {
 
           {recovery && (
             <div>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="text-sm text-tertiary mb-3">
                 Top lever values the greedy policy exploits toward ({recovery.trials}{' '}
                 trials):
               </p>
-              <div className="border border-border rounded-xl bg-background divide-y divide-border">
+              <div className="rounded-xl bg-primary ring-1 ring-secondary_alt divide-y divide-secondary">
                 {Object.entries(recovery.top).map(([lever, top]) => (
                   <StatRow
                     key={lever}
@@ -164,16 +167,15 @@ function StatRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-2.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-xs font-medium text-foreground text-right">
+      <span className="text-sm text-tertiary">{label}</span>
+      <span className="text-sm font-medium text-primary text-right">
         {value}
         {badge && (
-          <b
-            className="ml-2 text-[0.6875rem]"
-            style={{ color: badgeGood ? 'var(--primary)' : 'var(--muted-foreground)' }}
-          >
-            {badge}
-          </b>
+          <span className="ml-2 inline-flex">
+            <Badge color={badgeGood ? 'success' : 'gray'} size="sm">
+              {badge}
+            </Badge>
+          </span>
         )}
       </span>
     </div>

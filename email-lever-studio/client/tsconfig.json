@@ -11,7 +11,13 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/untitled-ui/*"],
+      "@ui/*": ["src/untitled-ui/*"],
+      "@app/*": ["src/*"]
+    }
   },
-  "include": ["client/src", "shared"]
+  "include": ["src", "../shared", "./vite-env.d.ts"]
 }
