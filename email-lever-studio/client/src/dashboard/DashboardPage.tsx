@@ -1,0 +1,104 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useParams } from 'react-router'
+import { Button } from '@ui/components/base/buttons/button'
+import CampaignSidebar from './components/CampaignSidebar'
+import EmailCard from './components/EmailCard'
+import ActivityDrawer from './drawers/ActivityDrawer'
+import FiltersDrawer from './drawers/FiltersDrawer'
+import SettingsDrawer from './drawers/SettingsDrawer'
+import { computeCampaignActivity, filterEmails } from './mock'
+import { DEFAULT_FILTERS, type CampaignEmail, type EmailFilters } from './types'
+import { useDashboardData } from './useDashboardData'
+
+export default function DashboardPage() {
+  const { campaignId } = useParams<{ campaignId: string }>()
+  const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
+  const { campaigns, emails: fetchedEmails, campaign, loading } =
+    useDashboardData(campaignId)
+  const [emails, setEmails] = useState<CampaignEmail[]>([])
+
+  useEffect(() => {
+    setEmails(fetchedEmails)
+  }, [fetchedEmails])
+
+  const handleEmailUpdated = useCallback((updated: CampaignEmail) => {
+    setEmails((prev) =>
+      prev.map((item) => (item.id === updated.id ? updated : item)),
+    )
+  }, [])
+
+  const filteredEmails = useMemo(
+    () => filterEmails(emails, filters),
+    [emails, filters],
+  )
+
+  const activity = useMemo(
+    () => computeCampaignActivity(emails),
+    [emails],
+  )
+
+  if (!campaignId || (!loading && !campaign)) {
+    const fallback = campaigns[0]?.id ?? 'camp-1'
+    return <Navigate to={`/dashboard/campaign/${fallback}`} replace />
+  }
+
+  if (loading || !campaign) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-secondary">
+        <p className="text-sm text-tertiary">Loading campaign…</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-dvh bg-secondary">
+      <CampaignSidebar campaigns={campaigns} />
+
+      <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">
+        <header className="flex items-center justify-between gap-4 border-b border-secondary bg-primary px-6 py-4">
+          <h1 className="text-display-xs font-semibold text-primary">
+            {campaign.companyName}
+          </h1>
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-primary p-1 shadow-xs-skeuomorphic ring-1 ring-primary ring-inset">
+            <FiltersDrawer filters={filters} onChange={setFilters} />
+            <ActivityDrawer
+              campaignName={campaign.name}
+              activity={activity}
+              emailCount={emails.length}
+            />
+            <SettingsDrawer />
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 pt-6">
+          {filteredEmails.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-primary py-16 ring-1 ring-secondary_alt">
+              <p className="text-md font-medium text-primary">No emails match</p>
+              <p className="mt-1 text-sm text-tertiary">
+                Adjust filters or select another campaign
+              </p>
+              <Button
+                color="link-color"
+                size="md"
+                className="mt-4"
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+              >
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            <div className="mx-auto flex max-w-3xl flex-col gap-6">
+              {filteredEmails.map((email) => (
+                <EmailCard
+                  key={email.id}
+                  email={email}
+                  onEmailUpdated={handleEmailUpdated}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}

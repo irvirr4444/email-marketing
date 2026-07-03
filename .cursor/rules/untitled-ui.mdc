@@ -1,0 +1,51 @@
+---
+description: Use Untitled UI for all UI components in email-lever-studio
+globs: email-lever-studio/client/**/*.{tsx,ts}
+alwaysApply: true
+---
+
+# Untitled UI only
+
+All UI in `email-lever-studio/client` must use the vendored **Untitled UI** design system. Do not introduce other component libraries or hand-rolled controls when an Untitled UI equivalent exists.
+
+## Imports
+
+| Need | Import from |
+|------|-------------|
+| Components | `@ui/components/...` |
+| Icons | `@untitledui/icons` |
+| Utils inside untitled-ui | `@/utils/...` (only inside `client/src/untitled-ui/`) |
+
+`@ui` resolves to `client/src/untitled-ui/`. Browse that folder before building custom UI.
+
+## Required patterns
+
+```tsx
+// ✅ Button
+import { Button } from '@ui/components/base/buttons/button'
+import { Plus } from '@untitledui/icons'
+
+<Button size="xs" color="tertiary" iconLeading={Plus} aria-label="New campaign" />
+
+// ✅ Input, Badge, Avatar, SlideoutMenu, NavItemBase, etc.
+import { Input } from '@ui/components/base/input/input'
+import { SlideoutMenu } from '@ui/components/application/slideout-menus/slideout-menu'
+```
+
+```tsx
+// ❌ Do not use
+<button className="...">...</button>
+import { Button } from 'some-other-ui-lib'
+```
+
+## Styling
+
+- Use Untitled UI semantic tokens: `bg-primary`, `text-tertiary`, `ring-secondary`, `text-display-xs`, etc.
+- Match existing dashboard patterns (`ToolbarActionButton`, drawers, `CampaignSidebar`).
+- Plain layout elements (`div`, `p`, `ul`) are fine; interactive and branded controls must be Untitled UI components.
+
+## Before adding UI
+
+1. Search `client/src/untitled-ui/components/` for an existing component.
+2. Reuse application-level wrappers in `client/src/dashboard/components/` when they already wrap Untitled UI.
+3. Only create a new local component when nothing in Untitled UI fits—and compose it from Untitled UI primitives.

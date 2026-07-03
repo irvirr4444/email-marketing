@@ -64,9 +64,9 @@ interface SlideoutMenuProps extends Omit<AriaModalOverlayProps, "children">, Ref
     dialogClassName?: string;
 }
 
-const Menu = ({ children, dialogClassName, ...props }: SlideoutMenuProps) => {
+const Menu = ({ children, dialogClassName, isDismissable = true, ...props }: SlideoutMenuProps) => {
     return (
-        <ModalOverlay {...props}>
+        <ModalOverlay isDismissable={isDismissable} {...props}>
             <Modal className={(state) => cx(typeof props.className === "function" ? props.className(state) : props.className)}>
                 {(state) => (
                     <Dialog className={dialogClassName}>

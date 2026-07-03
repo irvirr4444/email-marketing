@@ -22,6 +22,10 @@ export default defineConfig({
         find: /^@app\//,
         replacement: `${path.resolve(__dirname, './client/src')}/`,
       },
+      {
+        find: /^@shared\//,
+        replacement: `${path.resolve(__dirname, './shared')}/`,
+      },
     ],
   },
   server: {

@@ -9,6 +9,13 @@ import {
   banditRecoveryHandler,
   banditTrainHandler,
 } from './routes/bandit.js'
+import {
+  approveEmailHandler,
+  listCampaignEmailsHandler,
+  listCampaignsHandler,
+  patchEmailHandler,
+  saveGeneratedEmailHandler,
+} from './routes/dashboard.js'
 
 const app = express()
 const PORT = 3001
@@ -30,6 +37,12 @@ app.post('/api/bandit/pick', banditPickHandler)
 app.post('/api/bandit/learn', banditLearnHandler)
 app.get('/api/bandit/recovery', banditRecoveryHandler)
 app.post('/api/bandit/train', banditTrainHandler)
+
+app.get('/api/dashboard/campaigns', listCampaignsHandler)
+app.get('/api/dashboard/campaigns/:campaignId/emails', listCampaignEmailsHandler)
+app.post('/api/dashboard/emails/:emailId/approve', approveEmailHandler)
+app.patch('/api/dashboard/emails/:emailId', patchEmailHandler)
+app.post('/api/dashboard/emails', saveGeneratedEmailHandler)
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`API server running on http://${HOST}:${PORT}`)

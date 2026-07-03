@@ -12,6 +12,7 @@ import {
   WidthType,
 } from 'docx'
 import { cloneLeverSuggestion, type EmailDraft, type LeverSuggestion } from '../shared/schema.ts'
+import { leverSummary } from '../shared/email-variables.ts'
 import { applyScenarioToLevers, type Scenario } from './scenarios.ts'
 
 export type BatchEmailRecord = {
@@ -24,39 +25,7 @@ export type BatchEmailRecord = {
   style: string
 }
 
-export function leverSummary(levers: LeverSuggestion): Record<string, string> {
-  const sl = levers.subjectLine.values
-  const ph = levers.preheader.values
-  const bd = levers.body.values
-  const cs = levers.copyStrategy.values
-  const sp = levers.socialProof.values
-  const ct = levers.cta.values
-  const of = levers.offer.values
-
-  return {
-    Intent: levers.intent.value,
-    Framework: cs.framework,
-    Emotion: cs.emotion,
-    Persuasion: cs.persuasion,
-    Specificity: cs.specificity,
-    Personalization: cs.personalizationDepth,
-    'Subject type': sl.type,
-    'Subject length': sl.length,
-    'Subject casing': sl.casing,
-    Preheader: ph.present ? `${ph.length}, ${ph.relationship}` : 'omit',
-    'Body length': bd.length,
-    'Body links': bd.linkCount,
-    Scannable: String(bd.scannable),
-    'Social proof': sp.type,
-    'SP placement': sp.type === 'none' ? '—' : sp.placement,
-    'SP specificity': sp.type === 'none' ? '—' : sp.specificity,
-    'CTA type': ct.type,
-    'CTA style': ct.style,
-    'CTA placement': ct.placement,
-    'CTA copy': levers.cta.ctaCopy,
-    Offer: of.hasOffer ? `${of.type} ${of.magnitude}` : 'none',
-  }
-}
+export { leverSummary }
 
 function cell(text: string): TableCell {
   return new TableCell({
