@@ -112,12 +112,40 @@ export const STYLE_AUTHOR_LABELS: Record<StyleKey, string> = {
   settle: 'Ben Settle',
 }
 
+export const STYLE_AUTHOR_DESCRIPTIONS: Record<StyleKey, string> = {
+  kennedy:
+    'Dan Kennedy — Direct-response marketing strategist known for his "No B.S." book series and blunt, no-nonsense teaching style. He built his reputation coaching entrepreneurs, financial advisors, and info-marketers on selling through sequenced follow-up rather than one-off pitches. He is a foundational influence on the modern info-marketing and coaching industry.',
+  ogilvy:
+    'David Ogilvy — Often called "The Father of Advertising," he founded Ogilvy & Mather and wrote the classic Confessions of an Advertising Man. He championed research-driven, benefit-focused copy long before "data-driven marketing" was a buzzword. His famous line "the consumer isn\'t a moron, she\'s your wife" still gets quoted today.',
+  kern:
+    'Internet marketer who helped popularize the "product launch" email sequence in the online business world. He is known for blending direct-response principles with a casual, conversational tone in his emails. His "Mass Control" course influenced a generation of online course creators.',
+  chaperon:
+    'Andre Chaperon — Email marketer best known for pioneering narrative-driven "soap opera sequences" — autoresponder emails structured like serialized story episodes. He built a cult following through his "Tiny Little Businesses" philosophy of small, sustainable online ventures. His work shifted email marketing away from hard pitches toward story-based engagement.',
+  halbert:
+    'Gary Halbert — Legendary direct-mail copywriter famous for writing some of the highest-converting sales letters in advertising history. His letters to his son, later published as The Boron Letters, remain a cult classic copywriting text. He was known for a gritty, street-smart persuasion style built on deep customer psychology.',
+  schwartz:
+    'Eugene Schwartz — Copywriter and author of Breakthrough Advertising, considered one of the most important copywriting books ever written. He developed the concept of "market sophistication" and stages of customer awareness, which still underpins modern funnel and email strategy. He wrote copy for major mail-order businesses and mentored many copywriters who came after him.',
+  albuquerque:
+    'Evaldo Albuquerque — Email copywriter best known for his work at Agora Financial, where he became one of the highest-paid copywriters in the financial newsletter space. He is known for combining storytelling with financial promotions to drive massive subscription sales. He later taught his methods through courses aimed at aspiring email copywriters.',
+  makepeace:
+    'Clayton Makepeace — One of the highest-earning direct-response copywriters in history, specializing in health and financial newsletter promotions. He was known for emotionally charged, benefit-driven copy that generated huge mailing list revenues for publishers like Agora and Boardroom. He also mentored copywriters through his training programs before his passing in 2016.',
+  brunson:
+    'Russell Brunson — Entrepreneur and co-founder of ClickFunnels, a software platform that popularized "sales funnels" for online businesses. He is the author of bestsellers like DotCom Secrets and Expert Secrets, which teach funnel-building and offer creation. He built a large following by combining product launches with community-driven marketing events.',
+  bencivenga:
+    'Gary Bencivenga — Widely regarded by peers as one of the greatest copywriters alive before his retirement, earning the nickname "the copywriter\'s copywriter." He wrote long-running control ads for financial and health publishers with unusually high response rates. His retirement seminar, later compiled as the "Bencivenga 100," is still studied by copywriters today.',
+  carlton:
+    'John Carlton — Direct-response copywriter known for his gritty, punchy, no-fluff writing style and decades of work in fitness, business opportunity, and marketing niches. He is often cited alongside Halbert as a master of "street" copywriting that speaks plainly to real people. He later taught copywriting through his "Marketing Rebel" training programs.',
+  settle:
+    'Ben Settle — Email marketing specialist known for popularizing daily, personality-driven emails as a standalone sales channel rather than just a supporting tool. He publishes the long-running Email Players newsletter, teaching copywriters and business owners to sell via short, opinionated daily emails. He is credited with helping shift small-business email marketing away from "newsletter" style toward direct, frequent selling.',
+}
+
 export function resolveStyle(
   key: StyleKey,
-): { key: StyleKey; text: string; author: string } {
+): { key: StyleKey; text: string; author: string; description: string } {
   return {
     key,
     text: WRITING_STYLES[key],
     author: STYLE_AUTHOR_LABELS[key],
+    description: STYLE_AUTHOR_DESCRIPTIONS[key],
   }
 }

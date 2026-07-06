@@ -1,8 +1,13 @@
-import { Badge } from '@ui/components/base/badges/badges'
 import {
   getVisibleVariableSections,
   type EmailVariableSnapshot,
 } from '@shared/email-variables.ts'
+import VariableHelpIcon from './variable-help/VariableHelpIcon'
+import VariableValueBadge from './variable-help/VariableValueBadge'
+import {
+  resolveVariableHelp,
+  resolveVariableValueMeaning,
+} from './variable-help/resolveVariableMetadata'
 
 type Props = {
   snapshot: EmailVariableSnapshot
@@ -14,25 +19,43 @@ export default function EmailVariables({ snapshot }: Props) {
   if (sections.length === 0) return null
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
       {sections.map((section) => (
-        <div key={section.id}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+        <section
+          key={section.id}
+          className="border-l-2 border-brand-solid pl-4"
+        >
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
             {section.label}
-          </p>
-          <div className="flex flex-wrap gap-2">
+          </h3>
+          <ul className="space-y-2">
             {section.items.map((item) => (
-              <Badge
+              <li
                 key={`${section.id}-${item.key}`}
-                color={item.primary ? 'brand' : 'gray'}
-                size="sm"
+                className="flex items-start justify-between gap-4"
               >
-                <span className="opacity-80">{item.label}:</span>{' '}
-                <span className="font-medium">{item.value}</span>
-              </Badge>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="text-sm font-medium text-secondary">
+                    {item.label}
+                  </span>
+                  <VariableHelpIcon
+                    label={item.label}
+                    help={resolveVariableHelp(item.key)}
+                  />
+                </div>
+                <VariableValueBadge
+                  value={item.value}
+                  meaning={resolveVariableValueMeaning(
+                    item.key,
+                    snapshot,
+                    item.value,
+                  )}
+                  primary={item.primary}
+                />
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       ))}
     </div>
   )
