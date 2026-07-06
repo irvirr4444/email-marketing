@@ -20,7 +20,6 @@ import { cx } from '@/utils/cx'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../auth/useAuth'
 import type { AppAccount } from '../../auth/types'
-import { getDefaultCampaignForAccount } from '../mock'
 
 type Props = AriaDialogProps & {
   className?: string
@@ -59,13 +58,7 @@ export default function DashboardAccountMenu({ className, ...dialogProps }: Prop
 
   const handleSwitch = (account: AppAccount) => {
     switchAccount(account.id)
-    const fallback = getDefaultCampaignForAccount(
-      account.companyIds,
-      account.defaultCompanyId,
-    )
-    if (fallback) {
-      navigate(`/dashboard/campaign/${fallback.id}`, { replace: true })
-    }
+    navigate('/dashboard', { replace: true })
   }
 
   const handleSignOut = () => {

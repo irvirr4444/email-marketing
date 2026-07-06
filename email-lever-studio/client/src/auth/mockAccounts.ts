@@ -40,7 +40,11 @@ const OVERRIDES_KEY = 'sigil-auth-account-overrides'
 
 export type AccountOverrides = Record<
   string,
-  { connectedEmail?: AppAccount['connectedEmail'] }
+  {
+    connectedEmail?: AppAccount['connectedEmail']
+    /** Company ids added by the user for this account. */
+    addedCompanyIds?: string[]
+  }
 >
 
 export function loadSession(): { accountId: string } | null {
@@ -96,7 +100,23 @@ export function applyAccountOverrides(
 ): AppAccount[] {
   return accounts.map((account) => {
     const patch = overrides[account.id]
-    if (!patch?.connectedEmail) return account
-    return { ...account, connectedEmail: patch.connectedEmail }
+    if (!patch) return account
+
+    const addedCompanyIds = patch.addedCompanyIds ?? []
+    const companyIds =
+      addedCompanyIds.length > 0
+        ? [
+            ...account.companyIds,
+            ...addedCompanyIds.filter((id) => !account.companyIds.includes(id)),
+          ]
+        : account.companyIds
+
+    return {
+      ...account,
+      companyIds,
+      ...(patch.connectedEmail
+        ? { connectedEmail: patch.connectedEmail }
+        : {}),
+    }
   })
 }

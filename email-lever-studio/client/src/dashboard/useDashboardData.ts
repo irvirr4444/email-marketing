@@ -5,7 +5,7 @@ import {
   isMockDashboard,
 } from './api'
 import {
-  MOCK_CAMPAIGNS,
+  getAllCampaigns,
   getCampaignById,
   getEmailsForCampaign,
 } from './mock'
@@ -36,7 +36,7 @@ export function useDashboardData(campaignId: string | undefined) {
 
     if (isMockDashboard()) {
       setState({
-        campaigns: MOCK_CAMPAIGNS,
+        campaigns: getAllCampaigns(),
         emails: getEmailsForCampaign(campaignId),
         loading: false,
         error: null,
@@ -52,7 +52,7 @@ export function useDashboardData(campaignId: string | undefined) {
       setState({ campaigns, emails, loading: false, error: null })
     } catch (err) {
       setState({
-        campaigns: MOCK_CAMPAIGNS,
+        campaigns: getAllCampaigns(),
         emails: getEmailsForCampaign(campaignId),
         loading: false,
         error: err instanceof Error ? err.message : 'Failed to load dashboard',

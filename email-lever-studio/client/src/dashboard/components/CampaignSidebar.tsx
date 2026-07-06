@@ -22,18 +22,25 @@ type Props = {
   campaigns?: Campaign[]
   companies: Company[]
   companyId: string
+  showCampaigns?: boolean
   onCompanyChange: (companyId: string) => void
+  onAddCompany: (name: string) =>
+    | { ok: true; companyId: string }
+    | { ok: false; error: string }
 }
 
 export default function CampaignSidebar({
   campaigns = [],
   companies,
   companyId,
+  showCampaigns,
   onCompanyChange,
+  onAddCompany,
 }: Props) {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const shouldShowCampaigns = showCampaigns ?? campaignId != null
 
   const filteredCampaigns = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -52,62 +59,67 @@ export default function CampaignSidebar({
             companies={companies}
             companyId={companyId}
             onCompanyChange={onCompanyChange}
+            onAddCompany={onAddCompany}
           />
 
-          <div className="mt-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <p className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-tertiary">
-                Campaigns
-              </p>
-              <Button
-                size="xs"
-                color="tertiary"
-                iconLeading={Plus}
-                aria-label="New campaign"
-                className="transition-transform duration-150 active:scale-95"
+          {shouldShowCampaigns && (
+            <div className="mt-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-tertiary">
+                  Campaigns
+                </p>
+                <Button
+                  size="xs"
+                  color="tertiary"
+                  iconLeading={Plus}
+                  aria-label="New campaign"
+                  className="transition-transform duration-150 active:scale-95"
+                />
+              </div>
+              <Input
+                size="sm"
+                placeholder="Search campaigns"
+                icon={SearchLg}
+                value={query}
+                onChange={setQuery}
+                aria-label="Search campaigns"
+                inputClassName="!py-1"
+                wrapperClassName="transition-shadow duration-150 focus-within:shadow-sm"
               />
             </div>
-            <Input
-              size="sm"
-              placeholder="Search campaigns"
-              icon={SearchLg}
-              value={query}
-              onChange={setQuery}
-              aria-label="Search campaigns"
-              inputClassName="!py-1"
-              wrapperClassName="transition-shadow duration-150 focus-within:shadow-sm"
-            />
-          </div>
+          )}
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-0.5">
-            {filteredCampaigns.map((campaign) => (
-              <li key={campaign.id}>
-                <NavItemBase
-                  type="link"
-                  href={`/dashboard/campaign/${campaign.id}`}
-                  current={campaignId === campaign.id}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    navigate(`/dashboard/campaign/${campaign.id}`)
-                  }}
-                  badge={
-                    <BadgeWithDot
-                      color={STATUS_COLOR[campaign.status]}
-                      type="modern"
-                      size="sm"
-                    >
-                      {campaign.emailCount}
-                    </BadgeWithDot>
-                  }
-                >
-                  {campaign.name}
-                </NavItemBase>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {shouldShowCampaigns && (
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+            <ul className="flex flex-col gap-0.5">
+              {filteredCampaigns.map((campaign) => (
+                <li key={campaign.id}>
+                  <NavItemBase
+                    type="link"
+                    href={`/dashboard/campaign/${campaign.id}`}
+                    current={campaignId === campaign.id}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate(`/dashboard/campaign/${campaign.id}`)
+                    }}
+                    badge={
+                      <BadgeWithDot
+                        color={STATUS_COLOR[campaign.status]}
+                        type="modern"
+                        size="sm"
+                      >
+                        {campaign.emailCount}
+                      </BadgeWithDot>
+                    }
+                  >
+                    {campaign.name}
+                  </NavItemBase>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
 
         <div className="mt-auto shrink-0 border-t border-secondary px-4 py-4">
           <p className="font-display text-md font-semibold text-primary" aria-label="Sigil AI">

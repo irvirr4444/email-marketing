@@ -1,6 +1,7 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import { FRAMEWORK_VALUES } from '../../../shared/schema.ts'
 import { deliveredCount, matchesEngagementFilters } from './engagement'
+import { loadCustomCampaigns, loadCustomCompanies } from './customWorkspace'
 import type {
   Campaign,
   CampaignEmail,
@@ -45,6 +46,14 @@ export const MOCK_CAMPAIGNS: Campaign[] = [
     companyName: 'Coca Cola',
     status: 'paused',
     emailCount: 1,
+  },
+  {
+    id: 'camp-empty',
+    name: 'Regional Partner Outreach',
+    companyId: 'co-coca',
+    companyName: 'Coca Cola',
+    status: 'active',
+    emailCount: 0,
   },
   {
     id: 'camp-4',
@@ -633,16 +642,24 @@ export const MOCK_EMAILS: CampaignEmail[] = [
   },
 ]
 
+export function getAllCompanies(): Company[] {
+  return [...MOCK_COMPANIES, ...loadCustomCompanies()]
+}
+
+export function getAllCampaigns(): Campaign[] {
+  return [...MOCK_CAMPAIGNS, ...loadCustomCampaigns()]
+}
+
 export function getCampaignById(id: string): Campaign | undefined {
-  return MOCK_CAMPAIGNS.find((c) => c.id === id)
+  return getAllCampaigns().find((c) => c.id === id)
 }
 
 export function getCompanyById(id: string): Company | undefined {
-  return MOCK_COMPANIES.find((c) => c.id === id)
+  return getAllCompanies().find((c) => c.id === id)
 }
 
 export function getCampaignsForCompany(companyId: string): Campaign[] {
-  return MOCK_CAMPAIGNS.filter((c) => c.companyId === companyId)
+  return getAllCampaigns().filter((c) => c.companyId === companyId)
 }
 
 export function getDefaultCampaignForCompany(
@@ -653,7 +670,7 @@ export function getDefaultCampaignForCompany(
 
 /** Companies visible to an account based on its company id list. */
 export function getCompaniesForAccount(companyIds: string[]): Company[] {
-  return MOCK_COMPANIES.filter((c) => companyIds.includes(c.id))
+  return getAllCompanies().filter((c) => companyIds.includes(c.id))
 }
 
 /** First campaign for an account's default company. */

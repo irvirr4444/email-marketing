@@ -19,6 +19,8 @@ import {
 } from './mockAccounts'
 import type { AppAccount, LoginInput, SignupInput } from './types'
 import type { ConnectedEmailSettings } from '../dashboard/types'
+import { createCompany } from '../dashboard/customWorkspace'
+import { getAllCompanies } from '../dashboard/mock'
 
 export type AuthContextValue = {
   isAuthenticated: boolean
@@ -33,6 +35,9 @@ export type AuthContextValue = {
   logout: () => void
   switchAccount: (accountId: string) => void
   updateConnectedEmail: (settings: ConnectedEmailSettings) => void
+  addCompany: (name: string) =>
+    | { ok: true; companyId: string }
+    | { ok: false; error: string }
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -50,6 +55,10 @@ function findAccountByEmail(
 ): AppAccount | undefined {
   const normalized = email.trim().toLowerCase()
   return accounts.find((a) => a.email.toLowerCase() === normalized)
+}
+
+function normalizeName(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
 type Props = {
@@ -117,6 +126,13 @@ export function AuthProvider({ children }: Props) {
       if (findAccountByEmail(accounts, input.email)) {
         return { ok: false, error: 'An account with this email already exists.' }
       }
+      if (
+        accounts.some(
+          (account) => normalizeName(account.name) === normalizeName(input.name),
+        )
+      ) {
+        return { ok: false, error: 'An account with this name already exists.' }
+      }
 
       const id = `custom-${slugifyId(input.email)}-${Date.now()}`
       const newAccount: AppAccount = {
@@ -155,10 +171,49 @@ export function AuthProvider({ children }: Props) {
       if (!activeAccount) return
       const nextOverrides: AccountOverrides = {
         ...overrides,
-        [activeAccount.id]: { connectedEmail: settings },
+        [activeAccount.id]: {
+          ...overrides[activeAccount.id],
+          connectedEmail: settings,
+        },
       }
       setOverrides(nextOverrides)
       saveAccountOverrides(nextOverrides)
+    },
+    [activeAccount, overrides],
+  )
+
+  const addCompany = useCallback(
+    (name: string):
+      | { ok: true; companyId: string }
+      | { ok: false; error: string } => {
+      if (!activeAccount) {
+        return { ok: false, error: 'You must be signed in to add a company.' }
+      }
+      const trimmed = name.trim()
+      if (!trimmed) {
+        return { ok: false, error: 'Company name is required.' }
+      }
+      if (
+        getAllCompanies().some(
+          (company) => normalizeName(company.name) === normalizeName(trimmed),
+        )
+      ) {
+        return { ok: false, error: 'A company with this name already exists.' }
+      }
+
+      const company = createCompany(trimmed)
+      const existingAdded = overrides[activeAccount.id]?.addedCompanyIds ?? []
+      const nextOverrides: AccountOverrides = {
+        ...overrides,
+        [activeAccount.id]: {
+          ...overrides[activeAccount.id],
+          addedCompanyIds: [...existingAdded, company.id],
+        },
+      }
+      setOverrides(nextOverrides)
+      saveAccountOverrides(nextOverrides)
+
+      return { ok: true, companyId: company.id }
     },
     [activeAccount, overrides],
   )
@@ -173,6 +228,7 @@ export function AuthProvider({ children }: Props) {
       logout,
       switchAccount,
       updateConnectedEmail,
+      addCompany,
     }),
     [
       activeAccount,
@@ -182,6 +238,7 @@ export function AuthProvider({ children }: Props) {
       logout,
       switchAccount,
       updateConnectedEmail,
+      addCompany,
     ],
   )
 

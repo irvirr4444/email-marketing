@@ -3,7 +3,6 @@ import { RouteProvider } from '@ui/providers/router-provider'
 import { ThemeProvider } from '@ui/providers/theme-provider'
 import { AuthProvider } from './auth/AuthProvider'
 import ProtectedRoute from './auth/ProtectedRoute'
-import DashboardDefaultRedirect from './auth/DashboardDefaultRedirect'
 import GeneratorPage from './pages/GeneratorPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './dashboard/DashboardPage'
@@ -21,7 +20,7 @@ export default function AppRouter() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardDefaultRedirect />
+                    <DashboardPage />
                   </ProtectedRoute>
                 }
               />
