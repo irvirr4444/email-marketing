@@ -139,7 +139,7 @@ export default function EmailEngagementModal({
                       setSelectedRecipientId(null)
                     }}
                     className={cx(
-                      'relative px-3 py-3 text-sm font-medium transition-colors',
+                      'relative cursor-pointer px-3 py-3 text-sm font-medium transition-colors',
                       selected
                         ? 'text-brand-secondary'
                         : 'text-tertiary hover:text-secondary',

@@ -1,26 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@ui/components/base/buttons/button'
 import { BadgeWithDot } from '@ui/components/base/badges/badges'
 import { Input } from '@ui/components/base/input/input'
 import { SlideoutMenu } from '@ui/components/application/slideout-menus/slideout-menu'
 import { Settings01 } from '@untitledui/icons'
+import { useAuth } from '../../auth/useAuth'
 import ToolbarActionButton from '../components/ToolbarActionButton'
-import { MOCK_CONNECTED_EMAIL } from '../mock'
-import type { ConnectedEmailSettings } from '../types'
 
 export default function SettingsDrawer() {
-  const [settings, setSettings] = useState<ConnectedEmailSettings>(
-    MOCK_CONNECTED_EMAIL,
-  )
+  const { activeAccount, updateConnectedEmail } = useAuth()
+  const settings = activeAccount?.connectedEmail ?? {
+    connected: false,
+    email: null,
+  }
   const [draftEmail, setDraftEmail] = useState(settings.email ?? '')
+
+  useEffect(() => {
+    setDraftEmail(settings.email ?? '')
+  }, [settings.email, activeAccount?.id])
 
   const handleConnect = () => {
     if (!draftEmail.trim()) return
-    setSettings({ connected: true, email: draftEmail.trim() })
+    updateConnectedEmail({ connected: true, email: draftEmail.trim() })
   }
 
   const handleDisconnect = () => {
-    setSettings({ connected: false, email: null })
+    updateConnectedEmail({ connected: false, email: null })
     setDraftEmail('')
   }
 
@@ -37,10 +42,15 @@ export default function SettingsDrawer() {
               </p>
             </SlideoutMenu.Header>
             <SlideoutMenu.Content className="gap-6">
-              <div className="rounded-xl ring-1 ring-secondary_alt bg-secondary p-4">
+              <div className="rounded-xl bg-secondary p-4 ring-1 ring-secondary ring-inset">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
                   Email connection
                 </p>
+                {activeAccount && (
+                  <p className="mt-1 text-xs text-quaternary">
+                    Workspace: {activeAccount.name}
+                  </p>
+                )}
                 {settings.connected && settings.email ? (
                   <div className="mt-3">
                     <BadgeWithDot color="success" type="modern" size="sm">

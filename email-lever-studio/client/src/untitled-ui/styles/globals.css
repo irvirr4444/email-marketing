@@ -70,3 +70,23 @@ input[type="search"]::-webkit-search-cancel-button {
 .recharts-surface path {
     outline: none;
 }
+
+/* Pointer cursor on interactive elements unless disabled. */
+button:not(:disabled),
+a[href],
+summary,
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="menuitem"]:not([aria-disabled="true"]),
+[role="option"]:not([aria-disabled="true"]),
+[role="menuitemradio"]:not([aria-disabled="true"]),
+[role="menuitemcheckbox"]:not([aria-disabled="true"]),
+[data-react-aria-pressable]:not([aria-disabled="true"]):not(:disabled) {
+    cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+    cursor: not-allowed;
+}

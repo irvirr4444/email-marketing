@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Button } from '@ui/components/base/buttons/button'
+import { useAuth } from '../auth/useAuth'
 import CampaignSidebar from './components/CampaignSidebar'
 import DashboardHeaderAccount from './components/DashboardHeaderAccount'
 import EmailCard from './components/EmailCard'
@@ -11,8 +12,10 @@ import {
   computeCampaignActivity,
   filterEmails,
   getCampaignsForCompany,
+  getCompaniesForAccount,
+  getDefaultCampaignForAccount,
   getDefaultCampaignForCompany,
-  MOCK_COMPANIES,
+  isCampaignAccessible,
 } from './mock'
 import { DEFAULT_FILTERS, type CampaignEmail, type EmailFilters } from './types'
 import { useDashboardData } from './useDashboardData'
@@ -20,12 +23,26 @@ import { useDashboardData } from './useDashboardData'
 export default function DashboardPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
+  const { activeAccount } = useAuth()
   const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
-  const { campaigns, emails: fetchedEmails, campaign, loading } =
+  const { emails: fetchedEmails, campaign, loading } =
     useDashboardData(campaignId)
   const [emails, setEmails] = useState<CampaignEmail[]>([])
 
-  const companyId = campaign?.companyId ?? MOCK_COMPANIES[0].id
+  const accountCompanies = useMemo(
+    () =>
+      activeAccount
+        ? getCompaniesForAccount(activeAccount.companyIds)
+        : [],
+    [activeAccount],
+  )
+
+  const companyId =
+    campaign?.companyId ??
+    activeAccount?.defaultCompanyId ??
+    accountCompanies[0]?.id ??
+    ''
+
   const companyCampaigns = useMemo(
     () => getCampaignsForCompany(companyId),
     [companyId],
@@ -40,6 +57,23 @@ export default function DashboardPage() {
     },
     [navigate],
   )
+
+  useEffect(() => {
+    if (!activeAccount) return
+
+    if (
+      campaignId &&
+      !isCampaignAccessible(campaignId, activeAccount.companyIds)
+    ) {
+      const fallback = getDefaultCampaignForAccount(
+        activeAccount.companyIds,
+        activeAccount.defaultCompanyId,
+      )
+      if (fallback) {
+        navigate(`/dashboard/campaign/${fallback.id}`, { replace: true })
+      }
+    }
+  }, [activeAccount, campaignId, navigate])
 
   useEffect(() => {
     setEmails(fetchedEmails)
@@ -61,9 +95,21 @@ export default function DashboardPage() {
     [emails],
   )
 
+  if (!activeAccount) {
+    return <Navigate to="/login" replace />
+  }
+
   if (!campaignId || (!loading && !campaign)) {
-    const fallback = campaigns[0]?.id ?? 'camp-1'
-    return <Navigate to={`/dashboard/campaign/${fallback}`} replace />
+    const fallback = getDefaultCampaignForAccount(
+      activeAccount.companyIds,
+      activeAccount.defaultCompanyId,
+    )
+    return (
+      <Navigate
+        to={`/dashboard/campaign/${fallback?.id ?? 'camp-1'}`}
+        replace
+      />
+    )
   }
 
   if (loading || !campaign) {
@@ -78,7 +124,7 @@ export default function DashboardPage() {
     <div className="flex min-h-dvh bg-secondary">
       <CampaignSidebar
         campaigns={companyCampaigns}
-        companies={MOCK_COMPANIES}
+        companies={accountCompanies}
         companyId={companyId}
         onCompanyChange={handleCompanyChange}
       />

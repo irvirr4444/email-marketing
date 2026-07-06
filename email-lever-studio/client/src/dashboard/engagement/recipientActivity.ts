@@ -365,33 +365,6 @@ export function getThreadForRecipient(
   return []
 }
 
-/** One-line activity summary for a recipient row in the active tab. */
-export function formatRecipientActivitySummary(
-  row: RecipientEngagement,
-  signal: EngagementSignal,
-): string {
-  const clickCount = row.clickedLinks?.length ?? 0
-
-  switch (signal) {
-    case 'delivered':
-      if (!row.openedAt) return 'Delivered · no opens yet'
-      if (clickCount === 0) return 'Delivered · opened'
-      return `Delivered · clicked ${clickCount} link${clickCount === 1 ? '' : 's'}`
-    case 'opened':
-      if (clickCount === 0) return 'Opened · no clicks'
-      return `Opened · clicked ${clickCount} link${clickCount === 1 ? '' : 's'}`
-    case 'clicked': {
-      const label = row.clickedLinks?.[0]?.label ?? 'link'
-      if (clickCount <= 1) return `Clicked · ${label}`
-      return `Clicked · ${clickCount} links`
-    }
-    case 'replied':
-      return row.repliedAt ? 'Replied · needs follow-up' : 'Replied'
-    default:
-      return ''
-  }
-}
-
 /** ISO timestamp for the row's last relevant activity in the active tab. */
 export function getRecipientLastActivityAt(
   row: RecipientEngagement,

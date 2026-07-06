@@ -651,6 +651,32 @@ export function getDefaultCampaignForCompany(
   return getCampaignsForCompany(companyId)[0]
 }
 
+/** Companies visible to an account based on its company id list. */
+export function getCompaniesForAccount(companyIds: string[]): Company[] {
+  return MOCK_COMPANIES.filter((c) => companyIds.includes(c.id))
+}
+
+/** First campaign for an account's default company. */
+export function getDefaultCampaignForAccount(
+  companyIds: string[],
+  defaultCompanyId: string,
+): Campaign | undefined {
+  const companyId = companyIds.includes(defaultCompanyId)
+    ? defaultCompanyId
+    : companyIds[0]
+  if (!companyId) return undefined
+  return getDefaultCampaignForCompany(companyId)
+}
+
+/** True when a campaign belongs to one of the account's companies. */
+export function isCampaignAccessible(
+  campaignId: string,
+  companyIds: string[],
+): boolean {
+  const campaign = getCampaignById(campaignId)
+  return campaign != null && companyIds.includes(campaign.companyId)
+}
+
 export function getEmailsForCampaign(campaignId: string): CampaignEmail[] {
   return sortEmails(MOCK_EMAILS.filter((e) => e.campaignId === campaignId))
 }

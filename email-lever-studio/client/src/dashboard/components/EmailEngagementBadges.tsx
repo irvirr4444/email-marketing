@@ -24,7 +24,7 @@ export default function EmailEngagementBadges({
   const percentages = engagementPercentages(metrics, status)
 
   return (
-    <div>
+    <div className="border-t border-secondary pt-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
         Engagement
       </p>

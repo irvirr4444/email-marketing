@@ -2,7 +2,15 @@
 
 React UI for browsing campaigns, filtering emails, and approving/rejecting pending drafts. Lives under `client/src/dashboard/`.
 
-**Dev:** from repo root run `npm run dev`, then open `http://localhost:5173/dashboard/campaign/camp-1`. Mock data is used in dev unless `VITE_USE_MOCK_DASHBOARD=false`.
+**Dev:** from repo root run `npm run dev`, then open `http://localhost:5173/login` (or `/dashboard/campaign/camp-1` after signing in). Mock data is used in dev unless `VITE_USE_MOCK_DASHBOARD=false`.
+
+## Auth and accounts
+
+Login, signup, and account switching live in **`../auth/`** — see **[auth/README.md](../auth/README.md)**.
+
+- Unauthenticated `/dashboard` routes redirect to `/login`.
+- Each account owns its company list, default campaign, and connected email settings.
+- Switch accounts from the header menu; dashboard data updates to match.
 
 ## Layout
 

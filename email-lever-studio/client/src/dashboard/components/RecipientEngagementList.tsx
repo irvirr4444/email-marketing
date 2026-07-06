@@ -2,7 +2,6 @@ import { Avatar } from '@ui/components/base/avatar/avatar'
 import { cx } from '@/utils/cx'
 import {
   formatActivityTime,
-  formatRecipientActivitySummary,
   getRecipientLastActivityAt,
 } from '../engagement'
 import type { EngagementSignal, RecipientEngagement } from '../types'
@@ -44,7 +43,6 @@ export default function RecipientEngagementList({
     <ul className="flex h-full flex-col overflow-y-auto">
       {recipients.map((recipient) => {
         const selected = selectedRecipientId === recipient.recipientId
-        const summary = formatRecipientActivitySummary(recipient, signal)
         const time = formatActivityTime(
           getRecipientLastActivityAt(recipient, signal),
         )
@@ -56,7 +54,7 @@ export default function RecipientEngagementList({
               onClick={() => onSelect(recipient.recipientId)}
               aria-pressed={selected}
               className={cx(
-                'flex w-full items-center gap-3 border-b border-secondary px-4 py-3 text-left transition-colors',
+                'grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-secondary px-4 py-3 text-left transition-colors',
                 selected ? 'bg-secondary' : 'hover:bg-primary_hover',
               )}
             >
@@ -65,15 +63,12 @@ export default function RecipientEngagementList({
                 initials={initials(recipient.name)}
                 alt={recipient.name}
               />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-primary">
-                  {recipient.name}
-                </p>
-                <p className="truncate text-xs text-tertiary">{summary}</p>
-              </div>
-              {time && (
-                <span className="shrink-0 text-xs text-quaternary">{time}</span>
-              )}
+              <p className="min-w-0 truncate text-center text-sm font-medium text-primary">
+                {recipient.name}
+              </p>
+              <span className="min-w-[2.5rem] shrink-0 text-right text-xs text-quaternary">
+                {time ?? ''}
+              </span>
             </button>
           </li>
         )

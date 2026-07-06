@@ -1,28 +1,40 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { BrowserRouter, Route, Routes } from 'react-router'
 import { RouteProvider } from '@ui/providers/router-provider'
 import { ThemeProvider } from '@ui/providers/theme-provider'
+import { AuthProvider } from './auth/AuthProvider'
+import ProtectedRoute from './auth/ProtectedRoute'
+import DashboardDefaultRedirect from './auth/DashboardDefaultRedirect'
 import GeneratorPage from './pages/GeneratorPage'
+import LoginPage from './pages/LoginPage'
 import DashboardPage from './dashboard/DashboardPage'
-import { MOCK_CAMPAIGNS } from './dashboard/mock'
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <ThemeProvider defaultTheme="light">
         <RouteProvider>
-          <Routes>
-            <Route path="/" element={<GeneratorPage />} />
-            <Route
-              path="/dashboard"
-              element={
-                <Navigate
-                  to={`/dashboard/campaign/${MOCK_CAMPAIGNS[0]?.id ?? 'camp-1'}`}
-                  replace
-                />
-              }
-            />
-            <Route path="/dashboard/campaign/:campaignId" element={<DashboardPage />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<GeneratorPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardDefaultRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/campaign/:campaignId"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </AuthProvider>
         </RouteProvider>
       </ThemeProvider>
     </BrowserRouter>

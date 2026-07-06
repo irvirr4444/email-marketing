@@ -92,9 +92,11 @@ function toDraft(email: CampaignEmail): EmailDraft {
 }
 
 const ACTION_BUTTON_CLASS =
-  'min-w-[5rem] justify-center rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 ease-out active:scale-[0.97] *:data-icon:size-3.5 *:data-icon:stroke-[2px]'
+  'justify-center rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 ease-out active:scale-[0.97] *:data-icon:size-3.5 *:data-icon:stroke-[2px]'
 
-const REJECT_BUTTON_CLASS = `${ACTION_BUTTON_CLASS} hover:bg-error-primary hover:text-error-primary`
+const ACTION_BUTTON_WIDE_CLASS = `${ACTION_BUTTON_CLASS} min-w-[5rem]`
+
+const REJECT_BUTTON_CLASS = `${ACTION_BUTTON_WIDE_CLASS} hover:bg-error-primary hover:text-error-primary`
 
 export default function EmailCard({ email, onEmailUpdated }: Props) {
   const [displayStatus, setDisplayStatus] = useState<DisplayStatus>(email.status)
@@ -336,7 +338,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
               <Button
                 size="xs"
                 color="secondary"
-                className={ACTION_BUTTON_CLASS}
+                className={ACTION_BUTTON_WIDE_CLASS}
                 onClick={cancelEditing}
                 isDisabled={isSaving}
               >
@@ -346,7 +348,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
                 size="xs"
                 color="primary"
                 iconLeading={Check}
-                className={`${ACTION_BUTTON_CLASS} shadow-xs hover:-translate-y-px hover:shadow-md`}
+                className={`${ACTION_BUTTON_WIDE_CLASS} shadow-xs hover:-translate-y-px hover:shadow-md`}
                 onClick={() => void handleSave()}
                 isLoading={isSaving}
                 isDisabled={isSaving}
@@ -357,7 +359,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
           )}
 
           {isPending && !isEditing && (
-            <div className="flex items-center justify-end gap-2 border-t border-secondary pt-3">
+            <div className="flex items-center justify-end gap-1.5 border-t border-secondary pt-3">
               <Button
                 size="xs"
                 color="tertiary"
@@ -367,7 +369,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
               >
                 Edit
               </Button>
-              <span className="h-3 w-px bg-border-secondary" aria-hidden />
+              <span className="h-3 w-px shrink-0 bg-border-secondary" aria-hidden />
               <Button
                 size="xs"
                 color="secondary"
@@ -377,12 +379,12 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
               >
                 Reject
               </Button>
-              <span className="h-3 w-px bg-border-secondary" aria-hidden />
+              <span className="h-3 w-px shrink-0 bg-border-secondary" aria-hidden />
               <Button
                 size="xs"
                 color="primary"
                 iconLeading={Check}
-                className={`${ACTION_BUTTON_CLASS} shadow-xs hover:-translate-y-px hover:shadow-md`}
+                className={`${ACTION_BUTTON_WIDE_CLASS} shadow-xs hover:-translate-y-px hover:shadow-md`}
                 onClick={() => setApproveOpen(true)}
               >
                 Approve

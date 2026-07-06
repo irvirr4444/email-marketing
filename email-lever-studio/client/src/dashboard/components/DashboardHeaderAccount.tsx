@@ -6,22 +6,17 @@ import {
   Button as AriaButton,
 } from 'react-aria-components'
 import { Avatar } from '@ui/components/base/avatar/avatar'
-import { NavAccountMenu } from '@ui/components/application/app-navigation/base-components/nav-account-card'
 import { useBreakpoint } from '@/hooks/use-breakpoint'
 import { cx } from '@/utils/cx'
-
-const ACCOUNT = {
-  id: 'caitlyn',
-  name: 'Caitlyn King',
-  email: 'caitlyn@untitledui.com',
-  avatar:
-    'https://www.untitledui.com/images/avatars/caitlyn-king?fm=webp&q=80',
-  status: 'online' as const,
-}
+import { useAuth } from '../../auth/useAuth'
+import DashboardAccountMenu from './DashboardAccountMenu'
 
 export default function DashboardHeaderAccount() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const isDesktop = useBreakpoint('lg')
+  const { activeAccount } = useAuth()
+
+  if (!activeAccount) return null
 
   return (
     <AriaDialogTrigger>
@@ -37,12 +32,12 @@ export default function DashboardHeaderAccount() {
       >
         <Avatar
           size="sm"
-          src={ACCOUNT.avatar}
-          alt={ACCOUNT.name}
-          status={ACCOUNT.status}
+          src={activeAccount.avatar ?? undefined}
+          alt={activeAccount.name}
+          status="online"
         />
         <span className="hidden max-w-[8rem] truncate text-sm font-semibold text-secondary sm:inline">
-          {ACCOUNT.name}
+          {activeAccount.name}
         </span>
         <ChevronSelectorVertical className="size-4 shrink-0 text-fg-quaternary" />
       </AriaButton>
@@ -60,7 +55,7 @@ export default function DashboardHeaderAccount() {
           )
         }
       >
-        <NavAccountMenu selectedAccountId={ACCOUNT.id} />
+        <DashboardAccountMenu />
       </AriaPopover>
     </AriaDialogTrigger>
   )
