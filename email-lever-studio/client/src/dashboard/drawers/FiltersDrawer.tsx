@@ -19,7 +19,7 @@ import {
 import EngagementFilters from '../components/EngagementFilters'
 import { FilterSectionBlock } from '../components/FilterSection'
 import ToolbarActionButton from '../components/ToolbarActionButton'
-import { ENGAGEMENT_KEYS } from '../emailEngagement'
+import { hasActiveEngagementFilters } from '../engagement'
 import { FRAMEWORK_FILTER_OPTIONS } from '../mock'
 import type { EmailFilters } from '../types'
 import { DEFAULT_FILTERS } from '../types'
@@ -27,7 +27,7 @@ import { DEFAULT_FILTERS } from '../types'
 function hasActiveFilters(filters: EmailFilters) {
   return (
     filters.status !== 'all' ||
-    ENGAGEMENT_KEYS.some((key) => filters.engagement[key] !== null) ||
+    hasActiveEngagementFilters(filters.engagement) ||
     filters.framework != null ||
     filters.intent != null ||
     filters.ctaType != null ||

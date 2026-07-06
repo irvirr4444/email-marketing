@@ -14,7 +14,7 @@ import EmailEngagementBadges from './EmailEngagementBadges'
 import EmailRecipients from './EmailRecipients'
 import EmailVariablesDialog from './EmailVariablesDialog'
 import { StyleStarsIcon } from './StyleStarsIcon'
-import { CARD_HEADER_BUTTON_CLASS, STATUS_BADGE_CLASS } from './statusBadgeStyles'
+import { STATUS_BADGE_CLASS } from './statusBadgeStyles'
 
 type DisplayStatus = CampaignEmail['status'] | 'rejected'
 
@@ -190,6 +190,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
   const statusBadge =
     displayStatus === 'sent' ? (
       <BadgeWithIcon
+        type="color"
         color="success"
         size="sm"
         iconLeading={CheckCircle}
@@ -198,11 +199,12 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
         Sent
       </BadgeWithIcon>
     ) : displayStatus === 'rejected' ? (
-      <Badge color="error" size="sm" className={STATUS_BADGE_CLASS}>
+      <Badge type="color" color="error" size="sm" className={STATUS_BADGE_CLASS}>
         Rejected
       </Badge>
     ) : (
       <BadgeWithIcon
+        type="color"
         color="orange"
         size="sm"
         iconLeading={Clock}
@@ -230,17 +232,22 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
               />
               <div className="flex items-center gap-2">
                 {hasVariables && (
-                  <Button
-                    size="xs"
-                    color="primary"
-                    iconLeading={
-                      <StyleStarsIcon className="size-3.5 shrink-0 text-white" />
-                    }
-                    className={CARD_HEADER_BUTTON_CLASS}
+                  <button
+                    type="button"
                     onClick={() => setVariablesOpen(true)}
+                    aria-label="View email style"
+                    className="cursor-pointer appearance-none border-0 bg-transparent p-0 outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   >
-                    Style
-                  </Button>
+                    <BadgeWithIcon
+                      type="color"
+                      color="brand"
+                      size="sm"
+                      iconLeading={StyleStarsIcon}
+                      className={STATUS_BADGE_CLASS}
+                    >
+                      Style
+                    </BadgeWithIcon>
+                  </button>
                 )}
                 {statusBadge}
               </div>
@@ -258,11 +265,12 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
             ) : (
               <h3 className="text-md font-semibold text-primary">{email.subject}</h3>
             )}
-            <EmailRecipients
-              recipients={email.recipients}
-              editable={isPending}
-              onChange={(recipients) => void handleRecipientsChange(recipients)}
-            />
+            {!isPending && (
+              <EmailRecipients
+                recipients={email.recipients}
+                onChange={(recipients) => void handleRecipientsChange(recipients)}
+              />
+            )}
           </div>
         </div>
 

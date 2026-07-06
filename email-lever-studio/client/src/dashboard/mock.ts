@@ -1,6 +1,6 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import { FRAMEWORK_VALUES } from '../../../shared/schema.ts'
-import { deliveredCount, matchesEngagementFilters } from './emailEngagement'
+import { deliveredCount, matchesEngagementFilters } from './engagement'
 import type { Campaign, CampaignEmail, ConnectedEmailSettings, Company, EmailFilters } from './types'
 
 export const MOCK_CONNECTED_EMAIL: ConnectedEmailSettings = {

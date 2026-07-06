@@ -1,6 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { Tag, TagGroup, TagList } from '@ui/components/base/tags/tags'
-import { cx } from '@/utils/cx'
 import type { EmailRecipient } from '../types'
 
 function initials(name: string) {
@@ -88,6 +87,11 @@ export default function EmailRecipients({
               id={recipient.id}
               avatarSrc={recipient.avatar ?? undefined}
               onClose={editable ? () => handleRemove(recipient.id) : undefined}
+              className={
+                editable
+                  ? '!bg-transparent !px-0 !shadow-none !ring-0 hover:!bg-primary_hover'
+                  : undefined
+              }
             >
               <span title={recipient.name}>{recipient.email}</span>
             </Tag>
@@ -109,43 +113,28 @@ export default function EmailRecipients({
 
   return (
     <div className="flex items-start gap-3">
-      <span className="w-6 shrink-0 pt-2 text-xs font-medium text-quaternary">
+      <span className="w-6 shrink-0 pt-1 text-xs font-medium text-quaternary">
         To
       </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         {recipients.length > 0 && (
-          <div className="rounded-xl bg-secondary px-2 py-1.5 ring-1 ring-secondary ring-inset">
-            <div className="flex flex-wrap items-center gap-1">{chipList}</div>
-          </div>
+          <div className="flex flex-wrap items-center gap-1">{chipList}</div>
         )}
-
-        <div
-          className={cx(
-            'rounded-xl bg-secondary px-2 py-1.5 ring-1 ring-secondary ring-inset',
-            'transition-shadow focus-within:ring-2 focus-within:ring-brand/20',
-          )}
-        >
-          <input
-            ref={inputRef}
-            type="email"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            onBlur={() => {
-              if (draft.trim()) handleAdd()
-            }}
-            placeholder={
-              recipients.length === 0 ? 'Add email addresses' : 'Add more'
-            }
-            className="h-7 w-full border-0 bg-transparent px-1.5 text-sm text-primary outline-none placeholder:text-placeholder"
-            aria-label="Add recipient email"
-          />
-          {recipients.length === 0 && !draft && (
-            <p className="px-1.5 pb-0.5 text-xs text-tertiary">
-              Press Enter after each address
-            </p>
-          )}
-        </div>
+        <input
+          ref={inputRef}
+          type="email"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleInputKeyDown}
+          onBlur={() => {
+            if (draft.trim()) handleAdd()
+          }}
+          placeholder={
+            recipients.length === 0 ? 'Add email addresses' : 'Add more'
+          }
+          className="h-7 w-full border-0 bg-transparent px-0 text-sm text-primary outline-none placeholder:text-placeholder"
+          aria-label="Add recipient email"
+        />
       </div>
     </div>
   )

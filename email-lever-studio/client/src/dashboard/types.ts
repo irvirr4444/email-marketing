@@ -1,5 +1,9 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import type { SocialProofAssets } from '../../../shared/schema.ts'
+import {
+  ENGAGEMENT_KEYS,
+  type EngagementKey,
+} from './engagement/constants'
 
 export type EmailStatus = 'sent' | 'pending'
 
@@ -76,16 +80,28 @@ export type CampaignActivity = {
   avgReplyRate: number
 }
 
-export type EngagementFilter = boolean | null
+/** Inclusive min/max percent bounds for one engagement signal; `null` = no bound. */
+export type EngagementRangeFilter = {
+  min: number | null
+  max: number | null
+}
+
+/** Default engagement range — matches any percentage. */
+export const EMPTY_ENGAGEMENT_RANGE: EngagementRangeFilter = { min: null, max: null }
+
+/** Fresh engagement filter map with every signal set to {@link EMPTY_ENGAGEMENT_RANGE}. */
+export function createEmptyEngagementFilters(): Record<
+  EngagementKey,
+  EngagementRangeFilter
+> {
+  return Object.fromEntries(
+    ENGAGEMENT_KEYS.map((key) => [key, { ...EMPTY_ENGAGEMENT_RANGE }]),
+  ) as Record<EngagementKey, EngagementRangeFilter>
+}
 
 export type EmailFilters = {
   status: EmailStatus | 'all'
-  engagement: {
-    delivered: EngagementFilter
-    opened: EngagementFilter
-    clicked: EngagementFilter
-    replied: EngagementFilter
-  }
+  engagement: Record<EngagementKey, EngagementRangeFilter>
   intent: string | null
   framework: string | null
   emotion: string | null
@@ -101,12 +117,7 @@ export type EmailFilters = {
 
 export const DEFAULT_FILTERS: EmailFilters = {
   status: 'all',
-  engagement: {
-    delivered: null,
-    opened: null,
-    clicked: null,
-    replied: null,
-  },
+  engagement: createEmptyEngagementFilters(),
   intent: null,
   framework: null,
   emotion: null,

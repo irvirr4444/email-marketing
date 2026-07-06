@@ -1,8 +1,11 @@
 import type { Campaign, CampaignEmail } from './types'
 
 const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK_DASHBOARD === 'true' ||
-  import.meta.env.VITE_USE_MOCK_DASHBOARD === true
+  import.meta.env.VITE_USE_MOCK_DASHBOARD === 'false'
+    ? false
+    : import.meta.env.VITE_USE_MOCK_DASHBOARD === 'true' ||
+      import.meta.env.VITE_USE_MOCK_DASHBOARD === true ||
+      import.meta.env.DEV
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)

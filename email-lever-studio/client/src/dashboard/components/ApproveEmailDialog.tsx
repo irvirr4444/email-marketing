@@ -1,16 +1,14 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Send01 } from '@untitledui/icons'
-import { Badge } from '@ui/components/base/badges/badges'
 import { Button } from '@ui/components/base/buttons/button'
 import { CloseButton } from '@ui/components/base/buttons/close-button'
+import { Input } from '@ui/components/base/input/input'
 import {
   Dialog,
   Modal,
   ModalOverlay,
 } from '@ui/components/application/modals/modal'
-import { FeaturedIcon } from '@ui/components/foundations/featured-icon/featured-icon'
 import type { CampaignEmail } from '../types'
-import EmailRecipients from './EmailRecipients'
 
 type Props = {
   email: CampaignEmail
@@ -28,7 +26,7 @@ function ReviewSection({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-tertiary">
+      <p className="mb-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-tertiary">
         {title}
       </p>
       {children}
@@ -42,6 +40,12 @@ export default function ApproveEmailDialog({
   onOpenChange,
   onConfirm,
 }: Props) {
+  const [generateCount, setGenerateCount] = useState(1)
+
+  useEffect(() => {
+    if (isOpen) setGenerateCount(1)
+  }, [isOpen])
+
   const handleConfirm = () => {
     onConfirm()
     onOpenChange(false)
@@ -55,22 +59,11 @@ export default function ApproveEmailDialog({
           className="w-full max-w-2xl outline-hidden"
         >
           <div className="flex max-h-[min(85dvh,720px)] w-full flex-col overflow-hidden rounded-2xl bg-primary shadow-xl ring-1 ring-secondary_alt">
-            <div className="flex items-start gap-4 border-b border-secondary px-5 py-4 md:px-6">
-              <FeaturedIcon
-                icon={Send01}
-                color="brand"
-                theme="modern"
-                size="md"
-                className="shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-semibold text-primary">
-                  Confirm send
-                </h2>
-                <p className="mt-1 text-sm text-tertiary">
-                  Review the full email and recipients before approving.
-                </p>
-              </div>
+            <div className="flex items-center gap-3 border-b border-secondary px-5 py-3.5 md:px-6">
+              <h2 className="flex min-w-0 flex-1 items-center gap-2 font-display text-lg font-semibold text-primary">
+                <Send01 className="size-5 shrink-0 text-fg-brand-primary" />
+                Confirm send
+              </h2>
               <CloseButton
                 size="sm"
                 label="Close confirmation"
@@ -79,39 +72,37 @@ export default function ApproveEmailDialog({
             </div>
 
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
-              <ReviewSection title="Recipients">
-                <EmailRecipients recipients={email.recipients} />
-              </ReviewSection>
-
-              {email.recipientContext && (
-                <ReviewSection title="Recipient context">
-                  <div className="flex flex-wrap gap-2">
-                    {email.recipientContext.segment && (
-                      <Badge color="gray" size="sm">
-                        Segment: {email.recipientContext.segment}
-                      </Badge>
-                    )}
-                    {email.recipientContext.industry && (
-                      <Badge color="gray" size="sm">
-                        Industry: {email.recipientContext.industry}
-                      </Badge>
-                    )}
-                    {email.recipientContext.role && (
-                      <Badge color="gray" size="sm">
-                        Role: {email.recipientContext.role}
-                      </Badge>
-                    )}
-                    {email.recipientContext.companyName && (
-                      <Badge color="gray" size="sm">
-                        Company: {email.recipientContext.companyName}
-                      </Badge>
-                    )}
-                  </div>
-                </ReviewSection>
-              )}
+              <div className="flex items-center justify-between gap-4">
+                <label
+                  htmlFor="approve-generate-count"
+                  className="text-sm font-medium text-primary"
+                >
+                  How many emails should we generate?
+                </label>
+                <Input
+                  id="approve-generate-count"
+                  className="w-[5.5rem] shrink-0"
+                  type="number"
+                  size="md"
+                  min={1}
+                  max={50}
+                  value={String(generateCount)}
+                  onChange={(value) => {
+                    const parsed = parseInt(value, 10)
+                    setGenerateCount(
+                      Number.isFinite(parsed)
+                        ? Math.min(50, Math.max(1, parsed))
+                        : 1,
+                    )
+                  }}
+                  aria-label="Number of emails to generate"
+                />
+              </div>
 
               <ReviewSection title="Subject">
-                <p className="text-md font-semibold text-primary">{email.subject}</p>
+                <p className="font-display text-md font-semibold text-primary">
+                  {email.subject}
+                </p>
               </ReviewSection>
 
               {email.preheader?.trim() && (
@@ -125,7 +116,6 @@ export default function ApproveEmailDialog({
                   {email.body}
                 </p>
               </ReviewSection>
-
             </div>
 
             <div className="flex gap-2 border-t border-secondary px-5 py-4 md:px-6">

@@ -1,8 +1,6 @@
 export const STATUS_BADGE_CLASS =
   'h-[26px] min-w-[5rem] justify-center rounded-md px-2.5 !py-0 text-xs font-medium leading-none *:data-icon:size-3.5 *:data-icon:shrink-0 *:data-icon:stroke-[2px]'
 
-export const CARD_HEADER_BUTTON_CLASS = `${STATUS_BADGE_CLASS} !h-[26px] gap-1 !py-0 !text-xs !font-medium shadow-xs transition-all duration-150 ease-out hover:-translate-y-px hover:shadow-md active:scale-[0.97]`
-
 export const STATUS_FILTER_SELECTED_CLASS: Record<
   'gray' | 'orange' | 'success',
   string

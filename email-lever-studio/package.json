@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "dev:clean": "lsof -ti :5173,:3001 2>/dev/null | xargs kill -9 2>/dev/null || true",
+    "dev:all": "npm run dev:clean && tsx watch server/index.ts & vite --port 5173 --strictPort",
     "dev:ui": "vite",
     "build:ui": "vite build",
     "preview:ui": "vite preview",

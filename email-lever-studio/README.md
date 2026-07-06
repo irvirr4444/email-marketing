@@ -184,6 +184,7 @@ CLI inputs
 |------|------|
 | [`shared/`](shared/) | Types, defaults, lever writing definitions |
 | [`server/`](server/) | Express API + Claude client |
+| [`client/src/dashboard/`](client/src/dashboard/) | Campaign dashboard React UI — see [dashboard README](client/src/dashboard/README.md) |
 | [`scripts/`](scripts/) | CLI entrypoints |
 | [`output/`](output/) | Generated drafts (gitignored) |
 
