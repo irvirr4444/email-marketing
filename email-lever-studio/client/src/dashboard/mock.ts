@@ -1,7 +1,14 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import { FRAMEWORK_VALUES } from '../../../shared/schema.ts'
 import { deliveredCount, matchesEngagementFilters } from './engagement'
-import type { Campaign, CampaignEmail, ConnectedEmailSettings, Company, EmailFilters } from './types'
+import type {
+  Campaign,
+  CampaignEmail,
+  ConnectedEmailSettings,
+  Company,
+  EmailFilters,
+  EmailRecipient,
+} from './types'
 
 export const MOCK_CONNECTED_EMAIL: ConnectedEmailSettings = {
   connected: true,
@@ -63,6 +70,35 @@ const LOREM =
 const avatar = (slug: string) =>
   `https://www.untitledui.com/images/avatars/${slug}?fm=webp&q=80`
 
+const BULK_RECIPIENT_NAMES = [
+  'Sarah Chen',
+  'Marcus Webb',
+  'Priya Patel',
+  'Tom Richards',
+  'Alex Morgan',
+  'Jordan Lee',
+  'Mia Chen',
+  'Chris Ortiz',
+  'Riley Brooks',
+  'Sam Patel',
+  'Taylor Wu',
+  'Nina Kowalski',
+]
+
+function buildBulkRecipients(count: number): EmailRecipient[] {
+  return Array.from({ length: count }, (_, index) => {
+    const name =
+      BULK_RECIPIENT_NAMES[index] ?? `Enterprise Prospect ${index + 1}`
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '.')
+    return {
+      id: `bulk-rcp-${index + 1}`,
+      name,
+      email: `${slug}@acmecorp.com`,
+      avatar: index < 12 ? avatar(slug.replace(/\./g, '-')) : null,
+    }
+  })
+}
+
 function buildMockSnapshot(
   partial: Partial<EmailVariableSnapshot> &
     Pick<EmailVariableSnapshot, 'intent' | 'framework'>,
@@ -103,14 +139,7 @@ export const MOCK_EMAILS: CampaignEmail[] = [
     campaignId: 'camp-1',
     subject: 'Quick idea for your Q1 pipeline',
     preheader: 'A 15-minute call could unlock your outbound playbook',
-    recipients: [
-      {
-        id: 'rcp-1',
-        name: 'Sarah Chen',
-        email: 'sarah.chen@acmecorp.com',
-        avatar: avatar('sarah-chow'),
-      },
-    ],
+    recipients: buildBulkRecipients(100),
     recipientContext: {
       segment: 'cold_prospect',
       industry: 'beverages',

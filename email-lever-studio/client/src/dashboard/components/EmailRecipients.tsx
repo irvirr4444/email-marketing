@@ -2,6 +2,8 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { Tag, TagGroup, TagList } from '@ui/components/base/tags/tags'
 import type { EmailRecipient } from '../types'
 
+const MAX_INLINE_RECIPIENTS = 3
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -22,16 +24,28 @@ function nameFromEmail(email: string) {
   )
 }
 
+function formatRecipientSummary(recipients: EmailRecipient[]) {
+  const visibleNames = recipients
+    .slice(0, MAX_INLINE_RECIPIENTS)
+    .map((recipient) => recipient.name || recipient.email)
+  const remaining = recipients.length - visibleNames.length
+
+  if (remaining <= 0) return visibleNames.join(', ')
+  return `${visibleNames.join(', ')} +${remaining} more`
+}
+
 type Props = {
   recipients: EmailRecipient[]
   editable?: boolean
   onChange?: (recipients: EmailRecipient[]) => void
+  onSummaryClick?: () => void
 }
 
 export default function EmailRecipients({
   recipients,
   editable = false,
   onChange,
+  onSummaryClick,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
@@ -101,6 +115,31 @@ export default function EmailRecipients({
     ) : null
 
   if (!editable) {
+    if (recipients.length > MAX_INLINE_RECIPIENTS) {
+      return (
+        <div className="flex items-center gap-3">
+          <span className="w-6 shrink-0 text-xs font-medium leading-5 text-quaternary">
+            To
+          </span>
+          <button
+            type="button"
+            onClick={onSummaryClick}
+            className="min-w-0 flex-1 cursor-pointer rounded-md text-left outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <p className="truncate text-sm leading-5 text-secondary hover:text-primary">
+              <span className="font-medium text-primary">
+                {recipients.length} recipients
+              </span>
+              <span className="text-tertiary">
+                {' '}
+                · {formatRecipientSummary(recipients)}
+              </span>
+            </p>
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="flex items-start gap-3">
         <span className="w-6 shrink-0 pt-1 text-xs font-medium text-quaternary">

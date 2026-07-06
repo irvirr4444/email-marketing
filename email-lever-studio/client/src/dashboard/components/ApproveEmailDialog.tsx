@@ -40,10 +40,10 @@ export default function ApproveEmailDialog({
   onOpenChange,
   onConfirm,
 }: Props) {
-  const [generateCount, setGenerateCount] = useState(1)
+  const [generateCount, setGenerateCount] = useState('1')
 
   useEffect(() => {
-    if (isOpen) setGenerateCount(1)
+    if (isOpen) setGenerateCount('1')
   }, [isOpen])
 
   const handleConfirm = () => {
@@ -85,16 +85,8 @@ export default function ApproveEmailDialog({
                   type="number"
                   size="md"
                   min={1}
-                  max={50}
-                  value={String(generateCount)}
-                  onChange={(value) => {
-                    const parsed = parseInt(value, 10)
-                    setGenerateCount(
-                      Number.isFinite(parsed)
-                        ? Math.min(50, Math.max(1, parsed))
-                        : 1,
-                    )
-                  }}
+                  value={generateCount}
+                  onChange={setGenerateCount}
                   aria-label="Number of emails to generate"
                 />
               </div>

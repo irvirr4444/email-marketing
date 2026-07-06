@@ -44,6 +44,22 @@ Filter application:
 
 Engagement details: **[engagement/README.md](./engagement/README.md)**
 
+## Email cards
+
+The email card implementation is documented in **[EMAIL_CARD.md](./EMAIL_CARD.md)**.
+
+Start there before changing:
+
+- `components/EmailCard.tsx`
+- `components/ApproveEmailDialog.tsx`
+- `components/RejectEmailDialog.tsx`
+- `components/EmailRecipients.tsx`
+- `components/EmailEngagementBadges.tsx`
+- `components/EmailEngagementModal.tsx`
+- `components/RecipientEngagementList.tsx`
+- `components/EmailThreadPanel.tsx`
+- `components/EmailVariablesDialog.tsx`
+
 ## UI rules
 
 All interactive controls use **Untitled UI** (`@ui/...`). See `.cursor/rules/untitled-ui.mdc`.

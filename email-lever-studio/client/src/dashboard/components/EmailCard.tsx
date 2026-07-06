@@ -6,9 +6,10 @@ import { Input } from '@ui/components/base/input/input'
 import { TextArea } from '@ui/components/base/textarea/textarea'
 import { patchEmail } from '../api'
 import { getVisibleVariableSections } from '@shared/email-variables.ts'
-import type { CampaignEmail, EmailRecipient } from '../types'
+import type { CampaignEmail, EmailRecipient, EngagementSignal } from '../types'
 import ApproveEmailDialog from './ApproveEmailDialog'
 import DashboardSnackbar from './DashboardSnackbar'
+import EmailEngagementModal from './EmailEngagementModal'
 import RejectEmailDialog from './RejectEmailDialog'
 import EmailEngagementBadges from './EmailEngagementBadges'
 import EmailRecipients from './EmailRecipients'
@@ -103,6 +104,8 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [variablesOpen, setVariablesOpen] = useState(false)
+  const [engagementSignal, setEngagementSignal] =
+    useState<EngagementSignal | null>(null)
   const [snackbar, setSnackbar] = useState<{
     message: string
     variant: 'brand' | 'error'
@@ -269,6 +272,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
               <EmailRecipients
                 recipients={email.recipients}
                 onChange={(recipients) => void handleRecipientsChange(recipients)}
+                onSummaryClick={() => setEngagementSignal('delivered')}
               />
             )}
           </div>
@@ -324,6 +328,7 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
           <EmailEngagementBadges
             metrics={email.metrics}
             status={displayStatus === 'sent' ? 'sent' : email.status}
+            onSignalClick={(signal) => setEngagementSignal(signal)}
           />
 
           {isPending && isEditing && (
@@ -406,6 +411,17 @@ export default function EmailCard({ email, onEmailUpdated }: Props) {
           snapshot={email.variables}
           isOpen={variablesOpen}
           onOpenChange={setVariablesOpen}
+        />
+      )}
+
+      {displayStatus === 'sent' && (
+        <EmailEngagementModal
+          email={email}
+          signal={engagementSignal}
+          isOpen={engagementSignal != null}
+          onOpenChange={(open) => {
+            if (!open) setEngagementSignal(null)
+          }}
         />
       )}
 

@@ -21,6 +21,7 @@ import {
 | `constants.ts` | Signal keys, display order, labels — **single source of truth** for which signals exist |
 | `range.ts` | Min/max percent filter logic (parse, clamp, normalize, apply, match) |
 | `metrics.ts` | Derive percentages from `EmailMetrics`, filter emails, delivered count |
+| `recipientActivity.ts` | Mock recipient-level engagement, thread helpers, modal tab counts |
 | `index.ts` | Re-exports public API |
 
 ## UI consumers (not in this folder)
@@ -30,10 +31,30 @@ import {
 | `components/EngagementFilters.tsx` | Composes status + engagement sections in the filters drawer |
 | `components/EngagementPercentRangeRow.tsx` | One min/max row; calls `applyEngagementRangeMin` / `applyEngagementRangeMax` |
 | `components/StatusFilterChips.tsx` | All / Pending / Sent chips |
-| `components/EmailEngagementBadges.tsx` | Percent badges on sent email cards |
+| `components/EmailEngagementBadges.tsx` | Percent badges on sent email cards; click opens drill-down modal |
+| `components/EmailEngagementModal.tsx` | Two-pane recipient engagement modal |
+| `components/RecipientEngagementList.tsx` | Left-pane recipient list in the modal |
+| `components/EmailThreadPanel.tsx` | Right-pane thread + mock reply composer |
 | `drawers/FiltersDrawer.tsx` | `hasActiveEngagementFilters` for the “On” badge |
 | `mock.ts` | `matchesEngagementFilters` when filtering mock data |
 | `types.ts` | `EngagementRangeFilter`, `EmailFilters.engagement`, `createEmptyEngagementFilters()` |
+
+## Engagement drill-down modal
+
+Clicking a badge on a sent email card opens `EmailEngagementModal` with tabs:
+
+- `Delivered` — everyone who received the email (including unopened)
+- `Opened`, `Clicked`, `Replied` — recipients who performed that action
+
+Helpers in `recipientActivity.ts`:
+
+- `getRecipientEngagementForEmail(email)`
+- `getRecipientEngagementBySignal(email, signal)`
+- `getEngagementSignalCounts(email)`
+- `getThreadForRecipient(email, recipient)`
+- `formatRecipientActivitySummary(row, signal)`
+
+Reply sending is **mock-only** for now (appends a local outbound message in the thread panel).
 
 ## Range filter behavior
 

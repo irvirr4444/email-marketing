@@ -135,3 +135,38 @@ export type ConnectedEmailSettings = {
   connected: boolean
   email: string | null
 }
+
+/** Drill-down signal for recipient-level engagement (matches {@link EngagementKey}). */
+export type EngagementSignal = EngagementKey
+
+export type RecipientClickedLink = {
+  id: string
+  url: string
+  label?: string
+  clickedAt: string
+}
+
+/** Per-recipient engagement events for an email send. */
+export type RecipientEngagement = {
+  recipientId: string
+  emailId: string
+  name: string
+  email: string
+  deliveredAt?: string
+  openedAt?: string
+  clickedLinks?: RecipientClickedLink[]
+  repliedAt?: string
+  threadId?: string
+}
+
+/** A single message in a recipient email thread. */
+export type EmailThreadMessage = {
+  id: string
+  threadId: string
+  direction: 'outbound' | 'inbound'
+  from: string
+  to: string[]
+  subject?: string
+  body: string
+  sentAt: string
+}
