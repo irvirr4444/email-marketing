@@ -4,10 +4,9 @@ import { BadgeWithDot } from '@ui/components/base/badges/badges'
 import { Button } from '@ui/components/base/buttons/button'
 import { Input } from '@ui/components/base/input/input'
 import { NavItemBase } from '@ui/components/application/app-navigation/base-components/nav-item'
-import { NavAccountCard } from '@ui/components/application/app-navigation/base-components/nav-account-card'
-import { Plus, SearchLg, Zap } from '@untitledui/icons'
-import { MOCK_CAMPAIGNS } from '../mock'
-import type { Campaign } from '../types'
+import { Plus, SearchLg } from '@untitledui/icons'
+import CompanySwitcher from './CompanySwitcher'
+import type { Campaign, Company } from '../types'
 
 const SIDEBAR_WIDTH = 280
 
@@ -21,9 +20,17 @@ export const DASHBOARD_SIDEBAR_WIDTH = SIDEBAR_WIDTH
 
 type Props = {
   campaigns?: Campaign[]
+  companies: Company[]
+  companyId: string
+  onCompanyChange: (companyId: string) => void
 }
 
-export default function CampaignSidebar({ campaigns = MOCK_CAMPAIGNS }: Props) {
+export default function CampaignSidebar({
+  campaigns = [],
+  companies,
+  companyId,
+  onCompanyChange,
+}: Props) {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -40,18 +47,14 @@ export default function CampaignSidebar({ campaigns = MOCK_CAMPAIGNS }: Props) {
         style={{ width: SIDEBAR_WIDTH }}
         className="fixed inset-y-0 left-0 z-30 flex h-dvh flex-col border-r border-secondary bg-primary"
       >
-        <div className="shrink-0 border-b border-secondary px-4 pb-2 pt-3">
-          <div className="flex items-center gap-1.5" aria-label="Email Lever Studio">
-            <span className="flex size-6 items-center justify-center rounded-md bg-brand-solid text-white shadow-xs">
-              <Zap className="size-3" />
-            </span>
-            <div>
-              <p className="text-xs font-semibold text-primary">Email Lever</p>
-              <p className="text-[0.625rem] leading-tight text-tertiary">Studio</p>
-            </div>
-          </div>
+        <div className="shrink-0 border-b border-secondary px-4 pb-3 pt-4">
+          <CompanySwitcher
+            companies={companies}
+            companyId={companyId}
+            onCompanyChange={onCompanyChange}
+          />
 
-          <div className="mt-2.5">
+          <div className="mt-3">
             <div className="mb-1.5 flex items-center justify-between">
               <p className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-tertiary">
                 Campaigns
@@ -106,12 +109,13 @@ export default function CampaignSidebar({ campaigns = MOCK_CAMPAIGNS }: Props) {
           </ul>
         </nav>
 
-        <div className="mt-auto shrink-0 border-t border-secondary px-3 py-4">
-          <NavAccountCard />
+        <div className="mt-auto shrink-0 border-t border-secondary px-4 py-4">
+          <p className="font-display text-md font-semibold text-primary" aria-label="Sigil AI">
+            Sigil AI
+          </p>
         </div>
       </aside>
 
-      {/* Spacer so main content doesn't sit under the fixed sidebar */}
       <div
         className="hidden shrink-0 lg:block"
         style={{ width: SIDEBAR_WIDTH }}

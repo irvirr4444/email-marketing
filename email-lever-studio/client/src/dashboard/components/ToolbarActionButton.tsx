@@ -10,12 +10,12 @@ type Props = {
 export default function ToolbarActionButton({ icon, children, trailing }: Props) {
   return (
     <Button
-      color="tertiary"
+      color="link-color"
       size="sm"
       iconLeading={icon}
-      className="rounded-md px-2.5 py-2 font-semibold text-secondary hover:bg-primary_hover hover:text-secondary_hover *:data-icon:stroke-[2.25px]"
+      className="gap-1 font-semibold *:data-icon:size-4 *:data-icon:stroke-[2.25px]"
     >
-      <span className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5">
         {children}
         {trailing}
       </span>

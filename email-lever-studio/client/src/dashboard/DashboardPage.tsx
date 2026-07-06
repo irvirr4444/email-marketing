@@ -1,21 +1,45 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Navigate, useParams } from 'react-router'
+import { Navigate, useNavigate, useParams } from 'react-router'
 import { Button } from '@ui/components/base/buttons/button'
 import CampaignSidebar from './components/CampaignSidebar'
+import DashboardHeaderAccount from './components/DashboardHeaderAccount'
 import EmailCard from './components/EmailCard'
 import ActivityDrawer from './drawers/ActivityDrawer'
 import FiltersDrawer from './drawers/FiltersDrawer'
 import SettingsDrawer from './drawers/SettingsDrawer'
-import { computeCampaignActivity, filterEmails } from './mock'
+import {
+  computeCampaignActivity,
+  filterEmails,
+  getCampaignsForCompany,
+  getDefaultCampaignForCompany,
+  MOCK_COMPANIES,
+} from './mock'
 import { DEFAULT_FILTERS, type CampaignEmail, type EmailFilters } from './types'
 import { useDashboardData } from './useDashboardData'
 
 export default function DashboardPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
+  const navigate = useNavigate()
   const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
   const { campaigns, emails: fetchedEmails, campaign, loading } =
     useDashboardData(campaignId)
   const [emails, setEmails] = useState<CampaignEmail[]>([])
+
+  const companyId = campaign?.companyId ?? MOCK_COMPANIES[0].id
+  const companyCampaigns = useMemo(
+    () => getCampaignsForCompany(companyId),
+    [companyId],
+  )
+
+  const handleCompanyChange = useCallback(
+    (nextCompanyId: string) => {
+      const nextCampaign = getDefaultCampaignForCompany(nextCompanyId)
+      if (nextCampaign) {
+        navigate(`/dashboard/campaign/${nextCampaign.id}`)
+      }
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     setEmails(fetchedEmails)
@@ -52,21 +76,30 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-dvh bg-secondary">
-      <CampaignSidebar campaigns={campaigns} />
+      <CampaignSidebar
+        campaigns={companyCampaigns}
+        companies={MOCK_COMPANIES}
+        companyId={companyId}
+        onCompanyChange={handleCompanyChange}
+      />
 
       <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">
         <header className="flex items-center justify-between gap-4 border-b border-secondary bg-primary px-6 py-4">
-          <h1 className="text-display-xs font-semibold text-primary">
-            {campaign.companyName}
+          <h1 className="font-display text-display-xs font-semibold text-primary">
+            {campaign.name}
           </h1>
-          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-primary p-1 shadow-xs-skeuomorphic ring-1 ring-primary ring-inset">
-            <FiltersDrawer filters={filters} onChange={setFilters} />
-            <ActivityDrawer
-              campaignName={campaign.name}
-              activity={activity}
-              emailCount={emails.length}
-            />
-            <SettingsDrawer />
+          <div className="flex shrink-0 items-center gap-4">
+            <nav className="flex items-center gap-4" aria-label="Campaign tools">
+              <FiltersDrawer filters={filters} onChange={setFilters} />
+              <ActivityDrawer
+                campaignName={campaign.name}
+                activity={activity}
+                emailCount={emails.length}
+              />
+              <SettingsDrawer />
+            </nav>
+            <div className="hidden h-6 w-px bg-border-secondary sm:block" aria-hidden />
+            <DashboardHeaderAccount />
           </div>
         </header>
 

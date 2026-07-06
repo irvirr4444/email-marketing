@@ -4,7 +4,6 @@ import {
   Modal,
   ModalOverlay,
 } from '@ui/components/application/modals/modal'
-import { FeaturedIcon } from '@ui/components/foundations/featured-icon/featured-icon'
 import type { EmailVariableSnapshot } from '@shared/email-variables.ts'
 import EmailVariables from './EmailVariables'
 import { StyleStarsIcon } from './StyleStarsIcon'
@@ -32,14 +31,8 @@ export default function EmailVariablesDialog({
         >
           <div className="flex max-h-[min(85dvh,640px)] w-full flex-col overflow-hidden rounded-2xl bg-primary shadow-xl ring-1 ring-secondary_alt">
             <div className="flex items-center gap-3 border-b border-secondary px-5 py-3.5 md:px-6">
-              <FeaturedIcon
-                icon={StyleStarsIcon}
-                color="brand"
-                theme="modern"
-                size="sm"
-                className="shrink-0"
-              />
-              <h2 className="min-w-0 flex-1 text-lg font-semibold text-primary">
+              <h2 className="flex min-w-0 flex-1 items-center gap-2 text-lg font-semibold text-primary">
+                <StyleStarsIcon className="size-5 shrink-0 text-fg-brand-primary" />
                 Style
               </h2>
               <CloseButton

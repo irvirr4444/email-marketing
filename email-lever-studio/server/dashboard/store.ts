@@ -1,5 +1,5 @@
 import type { CampaignEmail } from '../../client/src/dashboard/types.ts'
-import { MOCK_CAMPAIGNS, MOCK_EMAILS } from '../../client/src/dashboard/mock.ts'
+import { MOCK_CAMPAIGNS, MOCK_EMAILS, sortEmails } from '../../client/src/dashboard/mock.ts'
 
 /** In-memory store seeded from mock; replaced when DATABASE_URL is wired. */
 let campaigns = structuredClone(MOCK_CAMPAIGNS)
@@ -10,7 +10,7 @@ export function listCampaigns() {
 }
 
 export function listEmailsForCampaign(campaignId: string) {
-  return emails.filter((e) => e.campaignId === campaignId)
+  return sortEmails(emails.filter((e) => e.campaignId === campaignId))
 }
 
 export function findCampaign(campaignId: string) {

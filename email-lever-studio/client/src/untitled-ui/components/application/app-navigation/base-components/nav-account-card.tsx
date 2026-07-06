@@ -1,13 +1,15 @@
 import type { FC, HTMLAttributes } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import type { Placement } from "@react-types/overlays";
-import { BookOpen01, ChevronSelectorVertical, LogOut01, Plus, Settings01, User01 } from "@untitledui/icons";
+import { BookOpen01, ChevronSelectorVertical, LogOut01, Moon01, Plus, Settings01, Sun, User01 } from "@untitledui/icons";
 import { useFocusManager } from "react-aria";
 import type { DialogProps as AriaDialogProps } from "react-aria-components";
 import { Button as AriaButton, Dialog as AriaDialog, DialogTrigger as AriaDialogTrigger, Popover as AriaPopover } from "react-aria-components";
 import { AvatarLabelGroup } from "@/components/base/avatar/avatar-label-group";
 import { Button } from "@/components/base/buttons/button";
 import { RadioButtonBase } from "@/components/base/radio-buttons/radio-buttons";
+import { Toggle } from "@/components/base/toggle/toggle";
+import { useTheme } from "@/providers/theme-provider";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { cx } from "@/utils/cx";
 
@@ -48,6 +50,8 @@ export const NavAccountMenu = ({
 }: AriaDialogProps & { className?: string; accounts?: NavAccountType[]; selectedAccountId?: string }) => {
     const focusManager = useFocusManager();
     const dialogRef = useRef<HTMLDivElement>(null);
+    const { theme, setTheme } = useTheme();
+    const isDarkMode = theme === "dark";
 
     const onKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -87,6 +91,25 @@ export const NavAccountMenu = ({
                     <NavAccountCardMenuItem label="View profile" icon={User01} shortcut="⌘K->P" />
                     <NavAccountCardMenuItem label="Account settings" icon={Settings01} shortcut="⌘S" />
                     <NavAccountCardMenuItem label="Documentation" icon={BookOpen01} />
+                    <div className="px-1.5">
+                        <div className="flex items-center justify-between gap-3 rounded-md p-2">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-secondary">
+                                {isDarkMode ? (
+                                    <Moon01 className="size-5 text-fg-quaternary" />
+                                ) : (
+                                    <Sun className="size-5 text-fg-quaternary" />
+                                )}
+                                {isDarkMode ? "Dark mode" : "Light mode"}
+                            </div>
+                            <Toggle
+                                slim
+                                size="sm"
+                                aria-label="Toggle dark mode"
+                                isSelected={isDarkMode}
+                                onChange={(selected) => setTheme(selected ? "dark" : "light")}
+                            />
+                        </div>
+                    </div>
                 </div>
                 <div className="flex flex-col gap-0.5 border-t border-secondary py-1.5">
                     <div className="px-3 pt-1.5 pb-1 text-xs font-semibold text-tertiary">Switch account</div>

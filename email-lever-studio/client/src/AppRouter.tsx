@@ -8,7 +8,7 @@ import { MOCK_CAMPAIGNS } from './dashboard/mock'
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
+      <ThemeProvider defaultTheme="light">
         <RouteProvider>
           <Routes>
             <Route path="/" element={<GeneratorPage />} />

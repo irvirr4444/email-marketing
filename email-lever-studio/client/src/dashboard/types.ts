@@ -44,14 +44,22 @@ export type CampaignEmail = {
   recipientContext?: RecipientContext
   proofAssets?: SocialProofAssets
   sentAt: string | null
+  /** When the draft was created; used to sort pending emails newest-first. */
+  createdAt?: string | null
   status: EmailStatus
   metrics: EmailMetrics
   variables: EmailVariableSnapshot
 }
 
+export type Company = {
+  id: string
+  name: string
+}
+
 export type Campaign = {
   id: string
   name: string
+  companyId: string
   companyName: string
   status: 'active' | 'paused' | 'completed'
   emailCount: number

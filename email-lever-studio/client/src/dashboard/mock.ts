@@ -1,17 +1,24 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import { FRAMEWORK_VALUES } from '../../../shared/schema.ts'
 import { deliveredCount, matchesEngagementFilters } from './emailEngagement'
-import type { Campaign, CampaignEmail, ConnectedEmailSettings, EmailFilters } from './types'
+import type { Campaign, CampaignEmail, ConnectedEmailSettings, Company, EmailFilters } from './types'
 
 export const MOCK_CONNECTED_EMAIL: ConnectedEmailSettings = {
   connected: true,
   email: 'outreach@cocacola.com',
 }
 
+export const MOCK_COMPANIES: Company[] = [
+  { id: 'co-coca', name: 'Coca Cola' },
+  { id: 'co-pepsi', name: 'PepsiCo' },
+  { id: 'co-redbull', name: 'Red Bull' },
+]
+
 export const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: 'camp-1',
     name: 'Q1 Enterprise Outreach',
+    companyId: 'co-coca',
     companyName: 'Coca Cola',
     status: 'active',
     emailCount: 4,
@@ -19,6 +26,7 @@ export const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: 'camp-2',
     name: 'Product Launch — Retail',
+    companyId: 'co-coca',
     companyName: 'Coca Cola',
     status: 'active',
     emailCount: 2,
@@ -26,8 +34,25 @@ export const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: 'camp-3',
     name: 'Win-back Dormant Accounts',
+    companyId: 'co-coca',
     companyName: 'Coca Cola',
     status: 'paused',
+    emailCount: 1,
+  },
+  {
+    id: 'camp-4',
+    name: 'Summer Sampling Drive',
+    companyId: 'co-pepsi',
+    companyName: 'PepsiCo',
+    status: 'active',
+    emailCount: 2,
+  },
+  {
+    id: 'camp-5',
+    name: 'Energy Drink Launch',
+    companyId: 'co-redbull',
+    companyName: 'Red Bull',
+    status: 'active',
     emailCount: 1,
   },
 ]
@@ -225,6 +250,7 @@ export const MOCK_EMAILS: CampaignEmail[] = [
     ctaCopy: 'Should I send the benchmark sheet?',
     writingStyle: 'Frank Kern',
     sentAt: null,
+    createdAt: '2026-03-24T11:00:00',
     status: 'pending',
     metrics: {
       sent: 0,
@@ -293,6 +319,7 @@ export const MOCK_EMAILS: CampaignEmail[] = [
     ctaCopy: 'Worth a 20-minute intro call?',
     writingStyle: 'Andre Chaperon',
     sentAt: null,
+    createdAt: '2026-03-21T09:30:00',
     status: 'pending',
     metrics: {
       sent: 0,
@@ -466,14 +493,149 @@ export const MOCK_EMAILS: CampaignEmail[] = [
       ctaCopy: 'Claim your bundle',
     }),
   },
+  {
+    id: 'email-8',
+    campaignId: 'camp-4',
+    subject: 'Taste test invites — your stores',
+    preheader: 'Free sampling kits for top-performing locations',
+    recipients: [
+      {
+        id: 'rcp-15',
+        name: 'Jordan Lee',
+        email: 'jordan@retailpartners.com',
+        avatar: avatar('jordan-baker'),
+      },
+    ],
+    body: `${LOREM}\n\nWe're shipping sampling kits to select retail partners this month.`,
+    ctaCopy: 'Reserve sampling kits',
+    writingStyle: 'Dan Kennedy',
+    sentAt: '2026-03-05T10:00:00',
+    status: 'sent',
+    metrics: {
+      sent: 80,
+      opens: 32,
+      openRate: 40,
+      clicks: 8,
+      clickRate: 10,
+      replies: 1,
+      replyRate: 1.25,
+      conversions: 0,
+      delivered: 79,
+    },
+    variables: buildMockSnapshot({
+      intent: 'drive_purchase',
+      framework: 'AIDA',
+      emotion: 'fomo',
+      ctaType: 'buy',
+      ctaCopy: 'Reserve sampling kits',
+    }),
+  },
+  {
+    id: 'email-9',
+    campaignId: 'camp-4',
+    subject: 'Pending — regional manager intro',
+    recipients: [
+      {
+        id: 'rcp-16',
+        name: 'Alex Morgan',
+        email: 'alex@retailpartners.com',
+        avatar: avatar('alex-morgan'),
+      },
+    ],
+    body: `${LOREM}\n\nDraft for approval before regional rollout.`,
+    ctaCopy: 'Open to a quick intro?',
+    writingStyle: 'Frank Kern',
+    sentAt: null,
+    createdAt: '2026-03-19T08:00:00',
+    status: 'pending',
+    metrics: {
+      sent: 0,
+      opens: 0,
+      openRate: 0,
+      clicks: 0,
+      clickRate: 0,
+      replies: 0,
+      replyRate: 0,
+      conversions: 0,
+    },
+    variables: buildMockSnapshot({
+      intent: 'book_meeting',
+      framework: 'PAS',
+      ctaType: 'book',
+      ctaCopy: 'Open to a quick intro?',
+    }),
+  },
+  {
+    id: 'email-10',
+    campaignId: 'camp-5',
+    subject: 'Fuel the season — partner preview',
+    preheader: 'Early access for energy drink retail partners',
+    recipients: [
+      {
+        id: 'rcp-17',
+        name: 'Sam Rivera',
+        email: 'sam@fitness-retail.com',
+        avatar: avatar('sam-rivera'),
+      },
+    ],
+    body: `${LOREM}\n\nPreview our Q2 partner bundle before public launch.`,
+    ctaCopy: 'Get early access',
+    writingStyle: 'Ben Settle',
+    sentAt: '2026-03-01T15:30:00',
+    status: 'sent',
+    metrics: {
+      sent: 60,
+      opens: 24,
+      openRate: 40,
+      clicks: 0,
+      clickRate: 0,
+      replies: 0,
+      replyRate: 0,
+      conversions: 0,
+      delivered: 60,
+    },
+    variables: buildMockSnapshot({
+      intent: 'click_to_page',
+      framework: 'BAB',
+      emotion: 'aspiration',
+      ctaType: 'read',
+      ctaCopy: 'Get early access',
+    }),
+  },
 ]
 
 export function getCampaignById(id: string): Campaign | undefined {
   return MOCK_CAMPAIGNS.find((c) => c.id === id)
 }
 
+export function getCompanyById(id: string): Company | undefined {
+  return MOCK_COMPANIES.find((c) => c.id === id)
+}
+
+export function getCampaignsForCompany(companyId: string): Campaign[] {
+  return MOCK_CAMPAIGNS.filter((c) => c.companyId === companyId)
+}
+
+export function getDefaultCampaignForCompany(
+  companyId: string,
+): Campaign | undefined {
+  return getCampaignsForCompany(companyId)[0]
+}
+
 export function getEmailsForCampaign(campaignId: string): CampaignEmail[] {
-  return MOCK_EMAILS.filter((e) => e.campaignId === campaignId)
+  return sortEmails(MOCK_EMAILS.filter((e) => e.campaignId === campaignId))
+}
+
+export function sortEmails(emails: CampaignEmail[]): CampaignEmail[] {
+  return [...emails].sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === 'pending' ? -1 : 1
+    }
+
+    const aTime = new Date(a.sentAt ?? a.createdAt ?? 0).getTime()
+    const bTime = new Date(b.sentAt ?? b.createdAt ?? 0).getTime()
+    return bTime - aTime
+  })
 }
 
 export function computeCampaignActivity(emails: CampaignEmail[]) {
@@ -511,7 +673,7 @@ export function filterEmails(
   emails: CampaignEmail[],
   filters: EmailFilters,
 ): CampaignEmail[] {
-  return emails.filter((email) => {
+  const result = emails.filter((email) => {
     if (filters.status !== 'all' && email.status !== filters.status) {
       return false
     }
@@ -565,6 +727,7 @@ export function filterEmails(
     }
     return true
   })
+  return sortEmails(result)
 }
 
 /** Framework values used in mock data — subset of schema for filter dropdown. */
