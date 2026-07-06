@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Calendar } from '@untitledui/icons'
 import { CloseButton } from '@ui/components/base/buttons/close-button'
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   getEngagementSignalLabel,
   getRecipientEngagementBySignal,
 } from '../engagement'
-import { getCampaignById } from '../mock'
 import type { CampaignEmail, EngagementSignal } from '../types'
 import EmailThreadPanel from './EmailThreadPanel'
 import RecipientEngagementList from './RecipientEngagementList'
@@ -89,16 +89,7 @@ export default function EmailEngagementModal({
     }
   }, [recipients, selectedRecipientId])
 
-  const campaign = getCampaignById(email.campaignId)
-  const subtitle = [
-    campaign?.name ?? 'Campaign',
-    email.subject,
-    formatModalDate(email.sentAt),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
-  const title = `${getEngagementSignalLabel(activeSignal)} · ${counts[activeSignal]} recipient${counts[activeSignal] === 1 ? '' : 's'}`
+  const sentDate = formatModalDate(email.sentAt)
 
   return (
     <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable>
@@ -110,10 +101,18 @@ export default function EmailEngagementModal({
           <div className="flex h-[min(92dvh,880px)] w-full flex-col overflow-hidden rounded-2xl bg-primary shadow-xl ring-1 ring-secondary_alt">
             <div className="flex items-start gap-3 border-b border-secondary px-5 py-4 md:px-6">
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-semibold text-primary">{title}</h2>
-                <p className="mt-0.5 truncate text-sm text-tertiary">
-                  {subtitle}
-                </p>
+                <h2 className="truncate text-lg font-semibold text-primary">
+                  {email.subject}
+                </h2>
+                {sentDate && (
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-tertiary">
+                    <Calendar
+                      className="size-4 shrink-0 text-fg-quaternary"
+                      aria-hidden
+                    />
+                    <span>{sentDate}</span>
+                  </p>
+                )}
               </div>
               <CloseButton
                 size="sm"
