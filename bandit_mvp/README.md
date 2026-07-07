@@ -24,7 +24,7 @@ Three parts stay decoupled on purpose:
 
 | File | Role |
 |------|------|
-| `levers.py` | Lever + context taxonomy (mirrors `email-lever-studio/shared/schema.ts`), recipe sampling, VW feature encoding, and the `recipe -> LeverSuggestion` bridge to the TS renderer. |
+| `levers.py` | Lever + context taxonomy (mirrors `email-lever-studio/shared/schema.ts`), recipe sampling (random + coordinate-ascent candidate generation), VW feature encoding, and the `recipe -> LeverSuggestion` bridge to the TS renderer. |
 | `bandit.py` | Thin VW `cb_explore_adf` wrapper: `pick`, `learn`, `greedy_scores`, `save`. No email concepts leak in. |
 | `reward.py` | **THE swap point.** `random` / `planted` now; `real_reward` (DB) later. |
 | `renderer.py` | Claude renders a recipe into `subject, preheader, body, cta`. Offline/standalone path; the browser renders via the TS `/api/generate-draft`. |
@@ -85,6 +85,39 @@ cd email-lever-studio && npm run dev
 The UI flow: enter context -> **Pick levers** (`/api/bandit/pick`) -> **Render this email**
 (`/api/generate-draft`) -> thumbs up/down or outcome events (`/api/bandit/learn`). Pick
 again to watch the policy adapt, or **Show what it learned** for the recovery view.
+
+## How /pick builds its candidates (coordinate ascent)
+
+With ~31 levers, `k` purely random recipes cover an infinitesimal corner of the space, so
+even a well-trained policy could only pick "the least-bad of k random emails". The live
+`/pick` path instead builds the candidate set with **multi-start coordinate ascent**
+("sequence maximisation"):
+
+1. Up to `OPTIMIZED_FRACTION` (default 75%) of the `k` candidates start from a random
+   recipe, then walk the levers in order: for each lever, every value is scored by the
+   current policy with the other levers held fixed, and the best value is locked in.
+   `GREEDY_PASSES` (default 2) full sweeps, because the `-q CA` interactions mean one
+   pass is not a fixed point. Different starts land in different local optima; duplicates
+   are deduped (with an early stop after a streak of repeats).
+2. The rest of the set stays **random** — the exploration slice that keeps diverse data
+   flowing into the logs so the policy cannot collapse onto its own early opinions.
+3. The final choice is still `bandit.pick()` (epsilon-greedy sample over the set), NOT a
+   deterministic argmax. That keeps the logged propensity meaningful: the candidate set
+   is now policy-dependent, but off-policy updates stay valid because the full presented
+   set + propensity (+ per-candidate `optimized` flags) are logged in `decisions.jsonl`.
+
+The offline simulator (`run.py --mode planted/random`), the recovery checks, and
+`render_winner` intentionally keep all-random candidates: training on model-optimized
+candidates risks feedback collapse, and the recovery probe would be trivially biased by
+pre-optimized sets.
+
+Acceptance check (planted policy, 200 contexts, expected planted reward of the picked
+recipe): all-random candidates 0.700 vs optimized mix 0.841 (**+0.141 lift**); the full
+new-path decision (generation + pick) runs in ~10 ms.
+
+Note on reward weights: the ascent maximizes whatever the policy was trained on, so the
+static composite weights below are already baked into its scores. Per-campaign weights
+would require retraining per weight profile — the ascent itself needs no change.
 
 ## Train on logged data (`--mode real`)
 

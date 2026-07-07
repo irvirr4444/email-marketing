@@ -31,6 +31,7 @@ from bandit import Bandit
 from levers import (
     CONTEXT,
     candidate_recipes,
+    candidate_recipes_flagged,
     load_lever_weights,
     recipe_to_lever_suggestion,
     sample_context,
@@ -115,9 +116,13 @@ def health() -> dict[str, bool]:
 def pick(req: PickRequest) -> dict[str, Any]:
     ctx = _normalize_context(req.context)
     k = req.candidates or CANDIDATES_PER_ROUND
-    recipes = candidate_recipes(k, weights=_weights)
 
+    # Candidate generation runs under the lock too: coordinate ascent makes many predict
+    # calls on the shared (non-thread-safe) VW workspace.
     with _lock:
+        recipes, optimized = candidate_recipes_flagged(
+            k, weights=_weights, bandit=_bandit, ctx=ctx
+        )
         chosen, propensity, pmf = _bandit.pick(ctx, recipes)
 
     decision_id = uuid.uuid4().hex
@@ -127,6 +132,7 @@ def pick(req: PickRequest) -> dict[str, Any]:
         "recipes": recipes,
         "chosen": chosen,
         "propensity": propensity,
+        "optimized": optimized,
     }
     _decisions[decision_id] = record
     with DECISIONS_PATH.open("a") as f:

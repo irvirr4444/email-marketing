@@ -144,6 +144,14 @@ def _weighted_choice(rng: random.Random, values: list[str], weights: dict[str, f
 # ---------------------------------------------------------------------------
 # Sampling
 # ---------------------------------------------------------------------------
+# Live /pick candidate generation: fraction of the set built by coordinate ascent
+# (the rest stays random so exploration keeps feeding diverse data into the logs),
+# and how many full passes the ascent makes over the levers (the -q CA interactions
+# mean one pass is not a fixed point).
+OPTIMIZED_FRACTION = 0.75
+GREEDY_PASSES = 2
+
+
 def sample_context(rng: random.Random | None = None) -> dict[str, str]:
     """One random context dict."""
     rng = rng or random
@@ -162,14 +170,101 @@ def sample_recipe(
     }
 
 
+def sample_greedy_recipe(
+    bandit: Any,
+    ctx: dict[str, str],
+    rng: random.Random | None = None,
+    weights: dict[str, dict[str, float]] | None = None,
+    passes: int = GREEDY_PASSES,
+) -> dict[str, str]:
+    """One coordinate-ascent ("sequence maximisation") recipe under the current policy.
+
+    Starts from a (weighted) random recipe, then walks the levers in order: for each
+    lever, score every value with all other levers held fixed and lock in the winner.
+    Repeated for ``passes`` full sweeps. This is a local optimum from one random start;
+    callers do multi-start (see ``candidate_recipes``) to cover different basins.
+
+    ``bandit`` is injected (anything with ``greedy_best(ctx, recipes)``) so this module
+    stays framework-free and import-cycle-free.
+    """
+    rng = rng or random
+    recipe = sample_recipe(rng, weights)
+    for _ in range(passes):
+        for lever, values in LEVERS.items():
+            variants = [{**recipe, lever: v} for v in values]
+            best = bandit.greedy_best(ctx, variants)
+            recipe = variants[best]
+    return recipe
+
+
 def candidate_recipes(
     k: int,
     rng: random.Random | None = None,
     weights: dict[str, dict[str, float]] | None = None,
+    bandit: Any | None = None,
+    ctx: dict[str, str] | None = None,
+    optimized_fraction: float = OPTIMIZED_FRACTION,
 ) -> list[dict[str, str]]:
-    """A list of ``k`` candidate recipes for one decision round."""
+    """A list of ``k`` candidate recipes for one decision round.
+
+    Without ``bandit``/``ctx`` (training loop, recovery checks): all random, exactly the
+    historical behaviour. With them (the live /pick path): mostly coordinate-ascent
+    optimized candidates plus a random exploration slice — see ``candidate_recipes_flagged``.
+    """
+    return candidate_recipes_flagged(k, rng, weights, bandit, ctx, optimized_fraction)[0]
+
+
+def candidate_recipes_flagged(
+    k: int,
+    rng: random.Random | None = None,
+    weights: dict[str, dict[str, float]] | None = None,
+    bandit: Any | None = None,
+    ctx: dict[str, str] | None = None,
+    optimized_fraction: float = OPTIMIZED_FRACTION,
+) -> tuple[list[dict[str, str]], list[bool]]:
+    """Candidate recipes plus a per-candidate ``optimized`` flag (for decision logging).
+
+    Optimized recipes are deduped — different random starts often converge to the same
+    local optimum, and duplicate actions distort the exploration PMF and the logged
+    propensity — and the set is topped up with random recipes back to ``k``.
+    """
     rng = rng or random
-    return [sample_recipe(rng, weights) for _ in range(k)]
+    if bandit is None or ctx is None:
+        return [sample_recipe(rng, weights) for _ in range(k)], [False] * k
+
+    recipes: list[dict[str, str]] = []
+    flags: list[bool] = []
+    seen: set[tuple[tuple[str, str], ...]] = set()
+
+    def _add(recipe: dict[str, str], optimized: bool) -> bool:
+        key = tuple(sorted(recipe.items()))
+        if key in seen:
+            return False
+        seen.add(key)
+        recipes.append(recipe)
+        flags.append(optimized)
+        return True
+
+    # Multi-start ascent with an early stop: when the policy has few basins, most starts
+    # converge to the same recipe, so bail after a streak of duplicates instead of
+    # burning the full budget on identical ascents.
+    duplicate_streak = 0
+    for _ in range(round(k * optimized_fraction)):
+        if _add(sample_greedy_recipe(bandit, ctx, rng, weights), optimized=True):
+            duplicate_streak = 0
+        else:
+            duplicate_streak += 1
+            if duplicate_streak >= 3:
+                break
+
+    # Random exploration slice + top-up for deduped ascent duplicates. The recipe space
+    # is astronomically large, so random collisions are vanishing; cap attempts anyway.
+    attempts = 0
+    while len(recipes) < k and attempts < k * 20:
+        attempts += 1
+        _add(sample_recipe(rng, weights), optimized=False)
+
+    return recipes, flags
 
 
 # ---------------------------------------------------------------------------
