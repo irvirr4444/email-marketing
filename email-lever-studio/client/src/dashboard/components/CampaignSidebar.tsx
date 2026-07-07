@@ -41,7 +41,8 @@ export default function CampaignSidebar({
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const shouldShowCampaigns = showCampaigns ?? campaignId != null
+  const shouldShowCampaigns =
+    (showCampaigns ?? campaignId != null) && campaigns.length > 0
 
   const filteredCampaigns = useMemo(() => {
     const q = query.trim().toLowerCase()

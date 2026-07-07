@@ -116,8 +116,37 @@ export async function listMyCompanies(): Promise<CompanyRow[]> {
   return (data as CompanyRow[]) ?? []
 }
 
-/** Create a company and make the caller its owner (via the create_company RPC). */
-export async function createCompany(name: string): Promise<AuthResult<CompanyRow>> {
+/** Core company profile captured during onboarding, stored in company.extras. */
+export type CompanyProfileInput = {
+  description?: string
+  websiteUrl?: string
+  logoUrl?: string
+}
+
+/** Build a company.extras patch from a profile, omitting empty fields. */
+function buildCompanyExtras(
+  profile?: CompanyProfileInput,
+): Record<string, string> | null {
+  if (!profile) return null
+  const extras: Record<string, string> = {}
+  const description = profile.description?.trim()
+  const websiteUrl = profile.websiteUrl?.trim()
+  const logoUrl = profile.logoUrl?.trim()
+  if (description) extras.description = description
+  if (websiteUrl) extras.websiteUrl = websiteUrl
+  if (logoUrl) extras.logoUrl = logoUrl
+  return Object.keys(extras).length > 0 ? extras : null
+}
+
+/**
+ * Create a company and make the caller its owner (via the create_company RPC).
+ * Optional profile fields are stored in `company.extras` with a follow-up
+ * update (allowed by RLS because the caller is now the company owner).
+ */
+export async function createCompany(
+  name: string,
+  profile?: CompanyProfileInput,
+): Promise<AuthResult<CompanyRow>> {
   const supabase = requireSupabase()
   const { data, error } = await supabase.rpc('create_company', {
     p_name: name.trim(),
@@ -125,7 +154,22 @@ export async function createCompany(name: string): Promise<AuthResult<CompanyRow
   if (error) {
     return { ok: false, error: error.message }
   }
-  return { ok: true, data: data as CompanyRow }
+
+  let company = data as CompanyRow
+  const extras = buildCompanyExtras(profile)
+  if (extras) {
+    const { data: updated, error: updateError } = await supabase
+      .from('company')
+      .update({ extras })
+      .eq('id', company.id)
+      .select('*')
+      .single()
+    if (!updateError && updated) {
+      company = updated as CompanyRow
+    }
+  }
+
+  return { ok: true, data: company }
 }
 
 /**

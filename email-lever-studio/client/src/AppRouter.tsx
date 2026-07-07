@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { RouteProvider } from '@ui/providers/router-provider'
 import { ThemeProvider } from '@ui/providers/theme-provider'
 import { AuthProvider } from './auth/AuthProvider'
@@ -14,7 +14,8 @@ export default function AppRouter() {
         <RouteProvider>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<GeneratorPage />} />
+              <Route path="/" element={<Navigate to="/generator" replace />} />
+              <Route path="/generator" element={<GeneratorPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route
                 path="/dashboard"

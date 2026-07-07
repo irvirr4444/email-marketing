@@ -7,6 +7,7 @@ import AppSnackbar from '../components/AppSnackbar'
 import CampaignSidebar from './components/CampaignSidebar'
 import DashboardHeaderAccount from './components/DashboardHeaderAccount'
 import EmailCard from './components/EmailCard'
+import FirstCompanyOnboarding from './components/FirstCompanyOnboarding'
 import ActivityDrawer from './drawers/ActivityDrawer'
 import FiltersDrawer from './drawers/FiltersDrawer'
 import SettingsDrawer from './drawers/SettingsDrawer'
@@ -27,7 +28,8 @@ import { useDashboardData } from './useDashboardData'
 export default function DashboardPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
-  const { activeAccount, addCompany, refreshWorkspace } = useAuth()
+  const { activeAccount, addCompany, needsCompanyOnboarding, refreshWorkspace } =
+    useAuth()
   const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
   const { emails: fetchedEmails, campaign, loading } =
     useDashboardData(campaignId)
@@ -68,11 +70,6 @@ export default function DashboardPage() {
     [companyId],
   )
 
-  useEffect(() => {
-    if (campaignId || companyCampaigns.length === 0) return
-    navigate(`/dashboard/campaign/${companyCampaigns[0].id}`, { replace: true })
-  }, [campaignId, companyCampaigns, navigate])
-
   const handleCompanyChange = useCallback(
     (nextCompanyId: string) => {
       if (!campaignId) {
@@ -100,20 +97,6 @@ export default function DashboardPage() {
   const handleCreateCampaign = useCallback(() => {
     const company = getCompanyById(companyId)
     if (!company) return
-    const nextCampaignName = 'New campaign'
-    const duplicate = companyCampaigns.some(
-      (item) =>
-        item.name.trim().replace(/\s+/g, ' ').toLowerCase() ===
-        nextCampaignName.toLowerCase(),
-    )
-
-    if (duplicate) {
-      setSnackbar({
-        message: 'A campaign with this name already exists.',
-        variant: 'error',
-      })
-      return
-    }
 
     void (async () => {
       try {
@@ -128,7 +111,7 @@ export default function DashboardPage() {
         })
       }
     })()
-  }, [companyCampaigns, companyId, navigate, refreshWorkspace])
+  }, [companyId, navigate, refreshWorkspace])
 
   useEffect(() => {
     if (!activeAccount) return
@@ -170,6 +153,10 @@ export default function DashboardPage() {
 
   if (!activeAccount) {
     return <Navigate to="/login" replace />
+  }
+
+  if (needsCompanyOnboarding) {
+    return <FirstCompanyOnboarding />
   }
 
   if (campaignId && !loading && !campaign) {
@@ -311,7 +298,6 @@ export default function DashboardPage() {
                   size="md"
                   iconLeading={Plus}
                   className="mt-6 shadow-xs hover:-translate-y-px hover:shadow-md"
-                  onClick={() => navigate('/')}
                 >
                   Generate first email
                 </Button>

@@ -31,7 +31,6 @@ import {
 } from '../dashboard/dataSource'
 import {
   createCompany as sbCreateCompany,
-  ensureWorkspace,
   getAppUser,
   getCurrentSession,
   onAuthStateChange,
@@ -40,6 +39,7 @@ import {
   signOut,
   signUpWithPassword,
   updateAppUserSettings,
+  type CompanyProfileInput,
 } from './supabaseAuth'
 import type { AppUserRow } from '../lib/database.types'
 
@@ -59,8 +59,11 @@ export type AuthContextValue = {
   logout: () => Promise<void> | void
   switchAccount: (accountId: string) => void
   updateConnectedEmail: (settings: ConnectedEmailSettings) => void
+  /** True when a signed-in Supabase user has no company yet (needs onboarding). */
+  needsCompanyOnboarding: boolean
   addCompany: (
     name: string,
+    profile?: CompanyProfileInput,
   ) => Promise<{ ok: true; companyId: string } | { ok: false; error: string }>
   /** Reload companies/campaigns from the backend (Supabase mode). */
   refreshWorkspace: () => Promise<void>
@@ -152,24 +155,15 @@ export function AuthProvider({ children }: Props) {
     saveSession(next)
   }, [])
 
-  /** Load app_user + workspace for a Supabase user, fill cache, return account. */
+  /**
+   * Load app_user + workspace for a Supabase user, fill cache, return account.
+   * Does NOT auto-create a company — new users are routed to onboarding.
+   */
   const loadAccountForUser = useCallback(async (user: User) => {
-    const [appUser, initialWorkspace] = await Promise.all([
+    const [appUser, workspace] = await Promise.all([
       getAppUser(user.id).catch(() => null),
       loadWorkspaceData(),
     ])
-    let workspace = initialWorkspace
-    if (workspace.companies.length === 0) {
-      const fallbackName =
-        appUser?.name ??
-        ((user.user_metadata?.name ?? user.user_metadata?.full_name) as
-          | string
-          | undefined) ??
-        user.email ??
-        'My workspace'
-      await ensureWorkspace(fallbackName)
-      workspace = await loadWorkspaceData()
-    }
     setWorkspaceCache(workspace)
     const account = buildSupabaseAccount(user, appUser, workspace.companies)
     setSbAccount(account)
@@ -269,7 +263,6 @@ export function AuthProvider({ children }: Props) {
               'Account created. Check your email to confirm it, then log in.',
           }
         }
-        await ensureWorkspace(input.name)
         const account = await loadAccountForUser(res.data.session.user)
         return { ok: true, accountId: account.id, account }
       }
@@ -355,6 +348,7 @@ export function AuthProvider({ children }: Props) {
   const addCompany = useCallback(
     async (
       name: string,
+      profile?: CompanyProfileInput,
     ): Promise<
       { ok: true; companyId: string } | { ok: false; error: string }
     > => {
@@ -367,7 +361,7 @@ export function AuthProvider({ children }: Props) {
         if (!sbAccount) {
           return { ok: false, error: 'You must be signed in to add a company.' }
         }
-        const res = await sbCreateCompany(trimmed)
+        const res = await sbCreateCompany(trimmed, profile)
         if (!res.ok) return { ok: false, error: res.error }
         await refreshWorkspace()
         return { ok: true, companyId: res.data.id }
@@ -408,6 +402,9 @@ export function AuthProvider({ children }: Props) {
       : []
     : mockAccounts
 
+  const needsCompanyOnboarding =
+    SUPABASE_MODE && activeAccount != null && activeAccount.companyIds.length === 0
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isAuthenticated: activeAccount != null,
@@ -420,6 +417,7 @@ export function AuthProvider({ children }: Props) {
       logout,
       switchAccount,
       updateConnectedEmail,
+      needsCompanyOnboarding,
       addCompany,
       refreshWorkspace,
     }),
@@ -433,6 +431,7 @@ export function AuthProvider({ children }: Props) {
       logout,
       switchAccount,
       updateConnectedEmail,
+      needsCompanyOnboarding,
       addCompany,
       refreshWorkspace,
     ],
