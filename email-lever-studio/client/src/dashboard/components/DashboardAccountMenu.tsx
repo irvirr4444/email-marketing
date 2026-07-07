@@ -62,8 +62,9 @@ export default function DashboardAccountMenu({ className, ...dialogProps }: Prop
   }
 
   const handleSignOut = () => {
-    logout()
-    navigate('/login', { replace: true })
+    void Promise.resolve(logout()).finally(() => {
+      navigate('/login', { replace: true })
+    })
   }
 
   const handleAddAccount = () => {

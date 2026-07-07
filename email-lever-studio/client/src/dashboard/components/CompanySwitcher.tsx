@@ -22,9 +22,9 @@ type Props = {
   companies: Company[]
   companyId: string
   onCompanyChange: (companyId: string) => void
-  onAddCompany: (name: string) =>
-    | { ok: true; companyId: string }
-    | { ok: false; error: string }
+  onAddCompany: (
+    name: string,
+  ) => Promise<{ ok: true; companyId: string } | { ok: false; error: string }>
 }
 
 export default function CompanySwitcher({
@@ -42,15 +42,14 @@ export default function CompanySwitcher({
 
   if (!selected) return null
 
-  const handleAddCompany = (name: string) => {
-    const result = onAddCompany(name)
+  const handleAddCompany = async (name: string) => {
+    const result = await onAddCompany(name)
     if (result.ok) {
       setPopoverOpen(false)
       onCompanyChange(result.companyId)
+      return { ok: true as const }
     }
-    return result.ok
-      ? { ok: true as const }
-      : { ok: false as const, error: result.error }
+    return { ok: false as const, error: result.error }
   }
 
   return (

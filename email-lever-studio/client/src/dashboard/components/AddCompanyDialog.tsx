@@ -13,7 +13,9 @@ import AppSnackbar from '../../components/AppSnackbar'
 type Props = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (name: string) => { ok: true } | { ok: false; error: string }
+  onConfirm: (
+    name: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>
 }
 
 export default function AddCompanyDialog({
@@ -43,15 +45,18 @@ export default function AddCompanyDialog({
     if (submitting) return
 
     setSubmitting(true)
-    const result = onConfirm(name)
-    setSubmitting(false)
-
-    if (!result.ok) {
-      setSnackbar({ message: result.error, variant: 'error' })
-      return
-    }
-
-    onOpenChange(false)
+    void (async () => {
+      try {
+        const result = await onConfirm(name)
+        if (!result.ok) {
+          setSnackbar({ message: result.error, variant: 'error' })
+          return
+        }
+        onOpenChange(false)
+      } finally {
+        setSubmitting(false)
+      }
+    })()
   }
 
   return (

@@ -4,11 +4,13 @@ import {
   fetchCampaigns,
   isMockDashboard,
 } from './api'
+import { getEmailsForCampaign as mockGetEmailsForCampaign } from './mock'
 import {
   getAllCampaigns,
   getCampaignById,
   getEmailsForCampaign,
-} from './mock'
+  isSupabaseBackend,
+} from './dataSource'
 import type { Campaign, CampaignEmail } from './types'
 
 type State = {
@@ -34,10 +36,31 @@ export function useDashboardData(campaignId: string | undefined) {
 
     setState((s) => ({ ...s, loading: true, error: null }))
 
+    if (isSupabaseBackend()) {
+      try {
+        const emails = await getEmailsForCampaign(campaignId)
+        setState({
+          campaigns: getAllCampaigns(),
+          emails,
+          loading: false,
+          error: null,
+        })
+      } catch (err) {
+        setState({
+          campaigns: getAllCampaigns(),
+          emails: [],
+          loading: false,
+          error:
+            err instanceof Error ? err.message : 'Failed to load dashboard',
+        })
+      }
+      return
+    }
+
     if (isMockDashboard()) {
       setState({
         campaigns: getAllCampaigns(),
-        emails: getEmailsForCampaign(campaignId),
+        emails: mockGetEmailsForCampaign(campaignId),
         loading: false,
         error: null,
       })
@@ -53,7 +76,7 @@ export function useDashboardData(campaignId: string | undefined) {
     } catch (err) {
       setState({
         campaigns: getAllCampaigns(),
-        emails: getEmailsForCampaign(campaignId),
+        emails: mockGetEmailsForCampaign(campaignId),
         loading: false,
         error: err instanceof Error ? err.message : 'Failed to load dashboard',
       })

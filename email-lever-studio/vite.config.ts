@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   root: 'client',
+  // Load env from the repo root .env (only VITE_-prefixed vars reach the client).
+  envDir: path.resolve(__dirname, '..'),
   plugins: [react(), tailwindcss()],
   resolve: {
     // IMPORTANT: don't alias bare "@" because it breaks scoped packages like

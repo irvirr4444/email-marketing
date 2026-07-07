@@ -12,6 +12,7 @@ import FiltersDrawer from './drawers/FiltersDrawer'
 import SettingsDrawer from './drawers/SettingsDrawer'
 import {
   computeCampaignActivity,
+  createCampaignForCompany,
   filterEmails,
   getCompanyById,
   getCampaignsForCompany,
@@ -19,15 +20,14 @@ import {
   getDefaultCampaignForAccount,
   getDefaultCampaignForCompany,
   isCampaignAccessible,
-} from './mock'
-import { createCampaignForCompany } from './customWorkspace'
+} from './dataSource'
 import { DEFAULT_FILTERS, type CampaignEmail, type EmailFilters } from './types'
 import { useDashboardData } from './useDashboardData'
 
 export default function DashboardPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
-  const { activeAccount, addCompany } = useAuth()
+  const { activeAccount, addCompany, refreshWorkspace } = useAuth()
   const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
   const { emails: fetchedEmails, campaign, loading } =
     useDashboardData(campaignId)
@@ -67,6 +67,11 @@ export default function DashboardPage() {
     () => getCampaignsForCompany(companyId),
     [companyId],
   )
+
+  useEffect(() => {
+    if (campaignId || companyCampaigns.length === 0) return
+    navigate(`/dashboard/campaign/${companyCampaigns[0].id}`, { replace: true })
+  }, [campaignId, companyCampaigns, navigate])
 
   const handleCompanyChange = useCallback(
     (nextCompanyId: string) => {
@@ -110,9 +115,20 @@ export default function DashboardPage() {
       return
     }
 
-    const nextCampaign = createCampaignForCompany(company)
-    navigate(`/dashboard/campaign/${nextCampaign.id}`)
-  }, [companyCampaigns, companyId, navigate])
+    void (async () => {
+      try {
+        const nextCampaign = await createCampaignForCompany(company)
+        await refreshWorkspace()
+        navigate(`/dashboard/campaign/${nextCampaign.id}`)
+      } catch (err) {
+        setSnackbar({
+          message:
+            err instanceof Error ? err.message : 'Could not create campaign.',
+          variant: 'error',
+        })
+      }
+    })()
+  }, [companyCampaigns, companyId, navigate, refreshWorkspace])
 
   useEffect(() => {
     if (!activeAccount) return

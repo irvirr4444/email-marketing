@@ -24,9 +24,10 @@ type Props = {
   companyId: string
   showCampaigns?: boolean
   onCompanyChange: (companyId: string) => void
-  onAddCompany: (name: string) =>
-    | { ok: true; companyId: string }
-    | { ok: false; error: string }
+  onAddCompany: (
+    name: string,
+  ) => Promise<{ ok: true; companyId: string } | { ok: false; error: string }>
+
 }
 
 export default function CampaignSidebar({

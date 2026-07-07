@@ -2,13 +2,15 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { Button } from '@ui/components/base/buttons/button'
 import { Input } from '@ui/components/base/input/input'
+import { SocialButton } from '@ui/components/base/buttons/social-button'
 import AppSnackbar from '../components/AppSnackbar'
 import { useAuth } from '../auth/useAuth'
 
 type AuthMode = 'login' | 'signup'
 
 export default function LoginPage() {
-  const { isAuthenticated, login, signup } = useAuth()
+  const { isAuthenticated, initializing, login, loginWithGoogle, signup } =
+    useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [mode, setMode] = useState<AuthMode>(() =>
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [oauthSubmitting, setOauthSubmitting] = useState(false)
   const [snackbar, setSnackbar] = useState<{
     message: string
     variant: 'error'
@@ -32,29 +35,63 @@ export default function LoginPage() {
   const isAddAccount = locationState?.signup === true
   const from = locationState?.from ?? '/dashboard'
 
-  if (isAuthenticated && !isAddAccount) {
-    return <Navigate to={from} replace />
-  }
+  const submitCredentials = useCallback(
+    async (creds: { name?: string; email: string; password: string }) => {
+      if (submitting) return
+      setSubmitting(true)
+      try {
+        const result =
+          mode === 'signup'
+            ? await signup({
+                name: creds.name ?? '',
+                email: creds.email,
+                password: creds.password,
+              })
+            : await login({ email: creds.email, password: creds.password })
+
+        if (!result.ok) {
+          setSnackbar({ message: result.error, variant: 'error' })
+          return
+        }
+        navigate('/dashboard', { replace: true })
+      } catch (err) {
+        setSnackbar({
+          message: err instanceof Error ? err.message : 'Something went wrong.',
+          variant: 'error',
+        })
+      } finally {
+        setSubmitting(false)
+      }
+    },
+    [login, mode, navigate, signup, submitting],
+  )
 
   const handleSubmit = (event?: FormEvent) => {
     event?.preventDefault()
-    if (submitting) return
+    void submitCredentials({ name, email, password })
+  }
 
-    setSubmitting(true)
+  const handleGoogleLogin = () => {
+    if (oauthSubmitting) return
+    setOauthSubmitting(true)
+    void loginWithGoogle().then((result) => {
+      if (!result.ok) {
+        setOauthSubmitting(false)
+        setSnackbar({ message: result.error, variant: 'error' })
+      }
+    })
+  }
 
-    const result =
-      mode === 'login'
-        ? login({ email, password })
-        : signup({ name, email, password })
+  if (initializing) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-secondary">
+        <p className="text-sm text-tertiary">Loading…</p>
+      </div>
+    )
+  }
 
-    setSubmitting(false)
-
-    if (!result.ok) {
-      setSnackbar({ message: result.error, variant: 'error' })
-      return
-    }
-
-    navigate('/dashboard', { replace: true })
+  if (isAuthenticated && !isAddAccount) {
+    return <Navigate to={from} replace />
   }
 
   return (
@@ -111,9 +148,32 @@ export default function LoginPage() {
               className="w-full"
               isLoading={submitting}
               isDisabled={submitting}
+              onClick={handleSubmit}
             >
               {mode === 'login' ? 'Log in' : 'Create account'}
             </Button>
+
+            {mode === 'login' && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border-secondary" />
+                  <span className="text-xs font-medium text-tertiary">or</span>
+                  <div className="h-px flex-1 bg-border-secondary" />
+                </div>
+
+                <SocialButton
+                  type="button"
+                  social="google"
+                  theme="brand"
+                  size="lg"
+                  className="w-full"
+                  disabled={submitting || oauthSubmitting}
+                  onClick={handleGoogleLogin}
+                >
+                  Continue with Google
+                </SocialButton>
+              </>
+            )}
 
             <Button
               type="button"
@@ -130,15 +190,6 @@ export default function LoginPage() {
                 : 'Already have an account? Log in'}
             </Button>
           </form>
-
-          {mode === 'login' && (
-            <p className="mt-6 border-t border-secondary pt-4 text-xs text-tertiary">
-              Demo accounts:{' '}
-              <span className="text-secondary">caitlyn@untitledui.com</span> or{' '}
-              <span className="text-secondary">sienna@untitledui.com</span> (any
-              password)
-            </p>
-          )}
         </div>
       </div>
 

@@ -74,23 +74,46 @@ async function main() {
     await readFile(resolve(absBatchDir, 'manifest.json'), 'utf8'),
   )
 
+  // Campaign name for the batch: explicit campaign, else product, else batch id.
+  const campaignName = manifest.campaign?.trim() || manifest.product?.trim() || manifest.batchId
+
   const lines: string[] = [
     '-- Postgres import for generation_batch + generated_email',
     `-- Batch: ${manifest.batchId}`,
     '',
-    `INSERT INTO generation_batch (batch_id, company, product, campaign, social_proof_assets, total_generated)`,
-    `VALUES (`,
+    '-- Ensure the company and campaign exist, then link the batch to them.',
+    `INSERT INTO company (name)`,
+    `SELECT ${pgStr(manifest.company)}`,
+    `WHERE NOT EXISTS (SELECT 1 FROM company WHERE lower(name) = lower(${pgStr(manifest.company)}));`,
+    '',
+    `INSERT INTO campaign (company_id, name)`,
+    `SELECT c.id, ${pgStr(campaignName)}`,
+    `FROM company c`,
+    `WHERE lower(c.name) = lower(${pgStr(manifest.company)})`,
+    `  AND NOT EXISTS (`,
+    `    SELECT 1 FROM campaign ca`,
+    `    WHERE ca.company_id = c.id AND lower(ca.name) = lower(${pgStr(campaignName)})`,
+    `  );`,
+    '',
+    `INSERT INTO generation_batch (batch_id, company, product, campaign, company_id, campaign_id, social_proof_assets, total_generated)`,
+    `SELECT`,
     `  ${pgStr(manifest.batchId)},`,
     `  ${pgStr(manifest.company)},`,
     `  ${pgStr(manifest.product)},`,
     `  ${pgStr(manifest.campaign ?? null)},`,
+    `  c.id,`,
+    `  ca.id,`,
     `  ${pgStr(JSON.stringify(manifest.socialProofAssets ?? {}))}::jsonb,`,
     `  ${manifest.total}`,
-    `)`,
+    `FROM company c`,
+    `JOIN campaign ca ON ca.company_id = c.id AND lower(ca.name) = lower(${pgStr(campaignName)})`,
+    `WHERE lower(c.name) = lower(${pgStr(manifest.company)})`,
     `ON CONFLICT (batch_id) DO UPDATE SET`,
     `  company = EXCLUDED.company,`,
     `  product = EXCLUDED.product,`,
     `  campaign = EXCLUDED.campaign,`,
+    `  company_id = EXCLUDED.company_id,`,
+    `  campaign_id = EXCLUDED.campaign_id,`,
     `  social_proof_assets = EXCLUDED.social_proof_assets,`,
     `  total_generated = EXCLUDED.total_generated;`,
     '',
@@ -102,9 +125,12 @@ async function main() {
     const ph = parsePreheader(l['Preheader'] ?? '')
     const offer = parseOffer(l['Offer'] ?? 'none')
 
+    const styleKey = email.style === 'none' ? null : email.style
+
     lines.push(
       `INSERT INTO generated_email (`,
-      `  batch_id, scenario_id, scenario_label, index_in_batch, subject, body,`,
+      `  batch_id, campaign_id, writing_style_id,`,
+      `  scenario_id, scenario_label, index_in_batch, subject, body,`,
       `  intent, subject_type, subject_length, subject_casing,`,
       `  preheader_present, preheader_length, preheader_relationship,`,
       `  body_length, body_links, body_scannable,`,
@@ -115,6 +141,8 @@ async function main() {
       `)`,
       `SELECT`,
       `  (SELECT id FROM generation_batch WHERE batch_id = ${pgStr(manifest.batchId)}),`,
+      `  (SELECT campaign_id FROM generation_batch WHERE batch_id = ${pgStr(manifest.batchId)}),`,
+      `  (SELECT id FROM writing_style WHERE key = ${pgStr(styleKey)}),`,
       `  ${pgStr(email.id)},`,
       `  ${pgStr(email.label)},`,
       `  ${email.index},`,
@@ -147,6 +175,8 @@ async function main() {
       `  ${pgStr(offer.type ?? null)},`,
       `  ${pgStr(offer.magnitude ?? null)}`,
       `ON CONFLICT (batch_id, scenario_id) DO UPDATE SET`,
+      `  campaign_id = EXCLUDED.campaign_id,`,
+      `  writing_style_id = EXCLUDED.writing_style_id,`,
       `  scenario_label = EXCLUDED.scenario_label,`,
       `  subject = EXCLUDED.subject,`,
       `  body = EXCLUDED.body,`,

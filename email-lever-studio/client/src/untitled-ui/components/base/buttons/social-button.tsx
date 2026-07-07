@@ -1,3 +1,4 @@
+import type React from "react";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, DetailedHTMLProps } from "react";
 import type { ButtonProps as AriaButtonProps, LinkProps as AriaLinkProps } from "react-aria-components";
 import { Button as AriaButton, Link as AriaLink } from "react-aria-components";
@@ -103,11 +104,18 @@ export const SocialButton = ({ size = "lg", theme = "brand", social, className, 
             ...(disabled ? { "data-rac": true, "data-disabled": true } : {}),
         };
     } else {
+        const { onClick, ...buttonProps } = otherProps;
+
         props = {
-            ...otherProps,
+            ...buttonProps,
 
             type: otherProps.type || "button",
             isDisabled: disabled,
+            onPress: onClick
+                ? (event: Parameters<NonNullable<AriaButtonProps["onPress"]>>[0]) => {
+                      onClick(event as unknown as React.MouseEvent<HTMLButtonElement>);
+                  }
+                : undefined,
         };
     }
 

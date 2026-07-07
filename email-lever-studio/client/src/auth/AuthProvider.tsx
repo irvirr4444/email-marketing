@@ -1,10 +1,12 @@
 import {
   createContext,
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import type { User } from '@supabase/supabase-js'
 import {
   applyAccountOverrides,
   BUILTIN_ACCOUNTS,
@@ -19,28 +21,54 @@ import {
 } from './mockAccounts'
 import type { AppAccount, LoginInput, SignupInput } from './types'
 import type { ConnectedEmailSettings } from '../dashboard/types'
-import { createCompany } from '../dashboard/customWorkspace'
+import { createCompany as mockCreateCompany } from '../dashboard/customWorkspace'
 import { getAllCompanies } from '../dashboard/mock'
+import { isSupabaseConfigured } from '../lib/supabase'
+import {
+  clearWorkspaceCache,
+  loadWorkspaceData,
+  setWorkspaceCache,
+} from '../dashboard/dataSource'
+import {
+  createCompany as sbCreateCompany,
+  ensureWorkspace,
+  getAppUser,
+  getCurrentSession,
+  onAuthStateChange,
+  signInWithGoogle,
+  signInWithPassword,
+  signOut,
+  signUpWithPassword,
+  updateAppUserSettings,
+} from './supabaseAuth'
+import type { AppUserRow } from '../lib/database.types'
+
+export type AuthResult =
+  | { ok: true; accountId: string; account: AppAccount }
+  | { ok: false; error: string }
 
 export type AuthContextValue = {
   isAuthenticated: boolean
+  /** True while the initial Supabase session is being restored. */
+  initializing: boolean
   activeAccount: AppAccount | null
   accounts: AppAccount[]
-  login: (input: LoginInput) =>
-    | { ok: true; accountId: string; account: AppAccount }
-    | { ok: false; error: string }
-  signup: (input: SignupInput) =>
-    | { ok: true; accountId: string; account: AppAccount }
-    | { ok: false; error: string }
-  logout: () => void
+  login: (input: LoginInput) => Promise<AuthResult>
+  loginWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>
+  signup: (input: SignupInput) => Promise<AuthResult>
+  logout: () => Promise<void> | void
   switchAccount: (accountId: string) => void
   updateConnectedEmail: (settings: ConnectedEmailSettings) => void
-  addCompany: (name: string) =>
-    | { ok: true; companyId: string }
-    | { ok: false; error: string }
+  addCompany: (
+    name: string,
+  ) => Promise<{ ok: true; companyId: string } | { ok: false; error: string }>
+  /** Reload companies/campaigns from the backend (Supabase mode). */
+  refreshWorkspace: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
+
+const SUPABASE_MODE = isSupabaseConfigured()
 
 function slugifyId(value: string) {
   return value
@@ -61,73 +89,196 @@ function normalizeName(value: string) {
   return value.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
+/** Build the app account view from a Supabase user + profile + companies. */
+function buildSupabaseAccount(
+  user: User,
+  appUser: AppUserRow | null,
+  companies: { id: string; name: string }[],
+): AppAccount {
+  const settings = (appUser?.settings ?? {}) as {
+    connectedEmail?: ConnectedEmailSettings
+  }
+  const metaName = (user.user_metadata?.name ?? user.user_metadata?.full_name) as
+    | string
+    | undefined
+  return {
+    id: user.id,
+    name: appUser?.name ?? metaName ?? user.email ?? 'User',
+    email: user.email ?? appUser?.email ?? '',
+    avatar: appUser?.avatar_url ?? null,
+    companyIds: companies.map((c) => c.id),
+    defaultCompanyId: companies[0]?.id ?? '',
+    connectedEmail: settings.connectedEmail ?? { connected: false, email: null },
+  }
+}
+
 type Props = {
   children: ReactNode
 }
 
 export function AuthProvider({ children }: Props) {
+  // --- Mock-mode state (used when Supabase is not configured) ---------------
   const [customAccounts, setCustomAccounts] = useState<AppAccount[]>(() =>
-    loadCustomAccounts(),
+    SUPABASE_MODE ? [] : loadCustomAccounts(),
   )
   const [overrides, setOverrides] = useState<AccountOverrides>(() =>
-    loadAccountOverrides(),
+    SUPABASE_MODE ? {} : loadAccountOverrides(),
   )
   const [session, setSession] = useState<{ accountId: string } | null>(() =>
-    loadSession(),
+    SUPABASE_MODE ? null : loadSession(),
   )
 
-  const accounts = useMemo(
+  // --- Supabase-mode state --------------------------------------------------
+  const [sbAccount, setSbAccount] = useState<AppAccount | null>(null)
+  const [initializing, setInitializing] = useState<boolean>(SUPABASE_MODE)
+
+  const mockAccounts = useMemo(
     () =>
-      applyAccountOverrides(
-        [...BUILTIN_ACCOUNTS, ...customAccounts],
-        overrides,
-      ),
+      applyAccountOverrides([...BUILTIN_ACCOUNTS, ...customAccounts], overrides),
     [customAccounts, overrides],
   )
 
-  const activeAccount = useMemo(() => {
+  const mockActiveAccount = useMemo(() => {
     if (!session) return null
     return (
-      accounts.find((a) => a.id === session.accountId) ??
-      accounts.find((a) => a.id === DEFAULT_ACCOUNT_ID) ??
+      mockAccounts.find((a) => a.id === session.accountId) ??
+      mockAccounts.find((a) => a.id === DEFAULT_ACCOUNT_ID) ??
       null
     )
-  }, [accounts, session])
+  }, [mockAccounts, session])
 
   const persistSession = useCallback((next: { accountId: string } | null) => {
     setSession(next)
     saveSession(next)
   }, [])
 
+  /** Load app_user + workspace for a Supabase user, fill cache, return account. */
+  const loadAccountForUser = useCallback(async (user: User) => {
+    const [appUser, initialWorkspace] = await Promise.all([
+      getAppUser(user.id).catch(() => null),
+      loadWorkspaceData(),
+    ])
+    let workspace = initialWorkspace
+    if (workspace.companies.length === 0) {
+      const fallbackName =
+        appUser?.name ??
+        ((user.user_metadata?.name ?? user.user_metadata?.full_name) as
+          | string
+          | undefined) ??
+        user.email ??
+        'My workspace'
+      await ensureWorkspace(fallbackName)
+      workspace = await loadWorkspaceData()
+    }
+    setWorkspaceCache(workspace)
+    const account = buildSupabaseAccount(user, appUser, workspace.companies)
+    setSbAccount(account)
+    return account
+  }, [])
+
+  // Restore Supabase session on mount and subscribe to auth changes.
+  useEffect(() => {
+    if (!SUPABASE_MODE) return
+    let active = true
+
+    ;(async () => {
+      try {
+        const current = await getCurrentSession()
+        if (active && current?.user) {
+          await loadAccountForUser(current.user)
+        }
+      } catch {
+        // ignore — leave unauthenticated
+      } finally {
+        if (active) setInitializing(false)
+      }
+    })()
+
+    const unsubscribe = onAuthStateChange((next) => {
+      if (!active) return
+      if (next?.user) {
+        void loadAccountForUser(next.user)
+      } else {
+        setSbAccount(null)
+        clearWorkspaceCache()
+      }
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [loadAccountForUser])
+
+  const refreshWorkspace = useCallback(async () => {
+    if (!SUPABASE_MODE) return
+    const current = await getCurrentSession()
+    if (current?.user) {
+      await loadAccountForUser(current.user)
+    }
+  }, [loadAccountForUser])
+
   const login = useCallback(
-    (input: LoginInput):
-      | { ok: true; accountId: string; account: AppAccount }
-      | { ok: false; error: string } => {
+    async (input: LoginInput): Promise<AuthResult> => {
       if (!input.email.trim() || !input.password.trim()) {
         return { ok: false, error: 'Email and password are required.' }
       }
-      const account = findAccountByEmail(accounts, input.email)
+
+      if (SUPABASE_MODE) {
+        const res = await signInWithPassword(input.email, input.password)
+        if (!res.ok) return { ok: false, error: res.error }
+        const account = await loadAccountForUser(res.data.user)
+        return { ok: true, accountId: account.id, account }
+      }
+
+      const account = findAccountByEmail(mockAccounts, input.email)
       if (!account) {
         return { ok: false, error: 'No account found for that email.' }
       }
       persistSession({ accountId: account.id })
       return { ok: true, accountId: account.id, account }
     },
-    [accounts, persistSession],
+    [mockAccounts, persistSession, loadAccountForUser],
   )
 
+  const loginWithGoogle = useCallback(async () => {
+    if (!SUPABASE_MODE) {
+      return { ok: false as const, error: 'Google login requires Supabase.' }
+    }
+    const res = await signInWithGoogle()
+    return res.ok ? { ok: true as const } : { ok: false as const, error: res.error }
+  }, [])
+
   const signup = useCallback(
-    (input: SignupInput):
-      | { ok: true; accountId: string; account: AppAccount }
-      | { ok: false; error: string } => {
+    async (input: SignupInput): Promise<AuthResult> => {
       if (!input.name.trim() || !input.email.trim() || !input.password.trim()) {
         return { ok: false, error: 'Name, email, and password are required.' }
       }
-      if (findAccountByEmail(accounts, input.email)) {
+
+      if (SUPABASE_MODE) {
+        const res = await signUpWithPassword(
+          input.name,
+          input.email,
+          input.password,
+        )
+        if (!res.ok) return { ok: false, error: res.error }
+        if (!res.data.session?.user) {
+          return {
+            ok: false,
+            error:
+              'Account created. Check your email to confirm it, then log in.',
+          }
+        }
+        await ensureWorkspace(input.name)
+        const account = await loadAccountForUser(res.data.session.user)
+        return { ok: true, accountId: account.id, account }
+      }
+
+      if (findAccountByEmail(mockAccounts, input.email)) {
         return { ok: false, error: 'An account with this email already exists.' }
       }
       if (
-        accounts.some(
+        mockAccounts.some(
           (account) => normalizeName(account.name) === normalizeName(input.name),
         )
       ) {
@@ -151,47 +302,79 @@ export function AuthProvider({ children }: Props) {
       persistSession({ accountId: id })
       return { ok: true, accountId: id, account: newAccount }
     },
-    [accounts, customAccounts, persistSession],
+    [mockAccounts, customAccounts, persistSession, loadAccountForUser],
   )
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (SUPABASE_MODE) {
+      await signOut()
+      setSbAccount(null)
+      clearWorkspaceCache()
+      return
+    }
     persistSession(null)
   }, [persistSession])
 
   const switchAccount = useCallback(
     (accountId: string) => {
-      if (!accounts.some((a) => a.id === accountId)) return
+      if (SUPABASE_MODE) return
+      if (!mockAccounts.some((a) => a.id === accountId)) return
       persistSession({ accountId })
     },
-    [accounts, persistSession],
+    [mockAccounts, persistSession],
   )
 
   const updateConnectedEmail = useCallback(
     (settings: ConnectedEmailSettings) => {
-      if (!activeAccount) return
+      if (SUPABASE_MODE) {
+        setSbAccount((prev) =>
+          prev ? { ...prev, connectedEmail: settings } : prev,
+        )
+        const userId = sbAccount?.id
+        if (userId) {
+          void updateAppUserSettings(userId, { connectedEmail: settings }).catch(
+            () => {},
+          )
+        }
+        return
+      }
+      if (!mockActiveAccount) return
       const nextOverrides: AccountOverrides = {
         ...overrides,
-        [activeAccount.id]: {
-          ...overrides[activeAccount.id],
+        [mockActiveAccount.id]: {
+          ...overrides[mockActiveAccount.id],
           connectedEmail: settings,
         },
       }
       setOverrides(nextOverrides)
       saveAccountOverrides(nextOverrides)
     },
-    [activeAccount, overrides],
+    [mockActiveAccount, overrides, sbAccount],
   )
 
   const addCompany = useCallback(
-    (name: string):
-      | { ok: true; companyId: string }
-      | { ok: false; error: string } => {
-      if (!activeAccount) {
-        return { ok: false, error: 'You must be signed in to add a company.' }
-      }
+    async (
+      name: string,
+    ): Promise<
+      { ok: true; companyId: string } | { ok: false; error: string }
+    > => {
       const trimmed = name.trim()
       if (!trimmed) {
         return { ok: false, error: 'Company name is required.' }
+      }
+
+      if (SUPABASE_MODE) {
+        if (!sbAccount) {
+          return { ok: false, error: 'You must be signed in to add a company.' }
+        }
+        const res = await sbCreateCompany(trimmed)
+        if (!res.ok) return { ok: false, error: res.error }
+        await refreshWorkspace()
+        return { ok: true, companyId: res.data.id }
+      }
+
+      if (!mockActiveAccount) {
+        return { ok: false, error: 'You must be signed in to add a company.' }
       }
       if (
         getAllCompanies().some(
@@ -201,12 +384,12 @@ export function AuthProvider({ children }: Props) {
         return { ok: false, error: 'A company with this name already exists.' }
       }
 
-      const company = createCompany(trimmed)
-      const existingAdded = overrides[activeAccount.id]?.addedCompanyIds ?? []
+      const company = mockCreateCompany(trimmed)
+      const existingAdded = overrides[mockActiveAccount.id]?.addedCompanyIds ?? []
       const nextOverrides: AccountOverrides = {
         ...overrides,
-        [activeAccount.id]: {
-          ...overrides[activeAccount.id],
+        [mockActiveAccount.id]: {
+          ...overrides[mockActiveAccount.id],
           addedCompanyIds: [...existingAdded, company.id],
         },
       }
@@ -215,30 +398,43 @@ export function AuthProvider({ children }: Props) {
 
       return { ok: true, companyId: company.id }
     },
-    [activeAccount, overrides],
+    [mockActiveAccount, overrides, sbAccount, refreshWorkspace],
   )
+
+  const activeAccount = SUPABASE_MODE ? sbAccount : mockActiveAccount
+  const accounts = SUPABASE_MODE
+    ? sbAccount
+      ? [sbAccount]
+      : []
+    : mockAccounts
 
   const value = useMemo<AuthContextValue>(
     () => ({
       isAuthenticated: activeAccount != null,
+      initializing,
       activeAccount,
       accounts,
       login,
+      loginWithGoogle,
       signup,
       logout,
       switchAccount,
       updateConnectedEmail,
       addCompany,
+      refreshWorkspace,
     }),
     [
       activeAccount,
+      initializing,
       accounts,
       login,
+      loginWithGoogle,
       signup,
       logout,
       switchAccount,
       updateConnectedEmail,
       addCompany,
+      refreshWorkspace,
     ],
   )
 

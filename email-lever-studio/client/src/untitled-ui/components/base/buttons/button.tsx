@@ -199,11 +199,18 @@ export const Button = ({
             href: disabled ? undefined : href,
         };
     } else {
+        const { onClick, ...buttonProps } = otherProps;
+
         props = {
-            ...otherProps,
+            ...buttonProps,
 
             type: otherProps.type || "button",
             isPending: loading,
+            onPress: onClick
+                ? (event: Parameters<NonNullable<AriaButtonProps["onPress"]>>[0]) => {
+                      onClick(event as unknown as React.MouseEvent<HTMLButtonElement>);
+                  }
+                : undefined,
         };
     }
 
