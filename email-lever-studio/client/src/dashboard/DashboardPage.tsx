@@ -5,6 +5,7 @@ import { Button } from '@ui/components/base/buttons/button'
 import { useAuth } from '../auth/useAuth'
 import AppSnackbar from '../components/AppSnackbar'
 import CampaignSidebar from './components/CampaignSidebar'
+import CampaignSetup from './components/CampaignSetup'
 import DashboardHeaderAccount from './components/DashboardHeaderAccount'
 import EmailCard from './components/EmailCard'
 import FirstCompanyOnboarding from './components/FirstCompanyOnboarding'
@@ -13,7 +14,6 @@ import FiltersDrawer from './drawers/FiltersDrawer'
 import SettingsDrawer from './drawers/SettingsDrawer'
 import {
   computeCampaignActivity,
-  createCampaignForCompany,
   filterEmails,
   getCompanyById,
   getCampaignsForCompany,
@@ -22,7 +22,12 @@ import {
   getDefaultCampaignForCompany,
   isCampaignAccessible,
 } from './dataSource'
-import { DEFAULT_FILTERS, type CampaignEmail, type EmailFilters } from './types'
+import {
+  DEFAULT_FILTERS,
+  isCampaignSetupComplete,
+  type CampaignEmail,
+  type EmailFilters,
+} from './types'
 import { useDashboardData } from './useDashboardData'
 
 export default function DashboardPage() {
@@ -31,10 +36,17 @@ export default function DashboardPage() {
   const { activeAccount, addCompany, needsCompanyOnboarding, refreshWorkspace } =
     useAuth()
   const [filters, setFilters] = useState<EmailFilters>(DEFAULT_FILTERS)
-  const { emails: fetchedEmails, campaign, loading } =
-    useDashboardData(campaignId)
+  const {
+    emails: fetchedEmails,
+    campaign,
+    loading,
+    refresh: refreshDashboard,
+  } = useDashboardData(campaignId)
   const [emails, setEmails] = useState<CampaignEmail[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState('')
+  const [draftSetupCompanyId, setDraftSetupCompanyId] = useState<string | null>(
+    null,
+  )
   const [snackbar, setSnackbar] = useState<{
     message: string
     variant: 'error'
@@ -64,14 +76,28 @@ export default function DashboardPage() {
 
   const selectedCompany =
     getCompanyById(companyId) ?? accountCompanies.find((c) => c.id === companyId)
+  const draftSetupCompany =
+    draftSetupCompanyId != null
+      ? getCompanyById(draftSetupCompanyId) ??
+        accountCompanies.find((c) => c.id === draftSetupCompanyId)
+      : null
 
   const companyCampaigns = useMemo(
     () => getCampaignsForCompany(companyId),
     [companyId],
   )
 
+  // When landing on /dashboard for a company that already has campaigns, jump
+  // straight into its first campaign. The company-level empty state is only for
+  // companies with zero campaigns.
+  useEffect(() => {
+    if (campaignId || draftSetupCompanyId || companyCampaigns.length === 0) return
+    navigate(`/dashboard/campaign/${companyCampaigns[0].id}`, { replace: true })
+  }, [campaignId, companyCampaigns, draftSetupCompanyId, navigate])
+
   const handleCompanyChange = useCallback(
     (nextCompanyId: string) => {
+      setDraftSetupCompanyId(null)
       if (!campaignId) {
         setSelectedCompanyId(nextCompanyId)
         return
@@ -98,20 +124,31 @@ export default function DashboardPage() {
     const company = getCompanyById(companyId)
     if (!company) return
 
-    void (async () => {
-      try {
-        const nextCampaign = await createCampaignForCompany(company)
+    setSelectedCompanyId(company.id)
+    setDraftSetupCompanyId(company.id)
+  }, [companyId])
+
+  const handleCampaignNavigation = useCallback(() => {
+    setDraftSetupCompanyId(null)
+  }, [])
+
+  const handleCampaignStarted = useCallback(
+    (nextCampaign: { id: string }) => {
+      void (async () => {
         await refreshWorkspace()
+        setDraftSetupCompanyId(null)
         navigate(`/dashboard/campaign/${nextCampaign.id}`)
-      } catch (err) {
-        setSnackbar({
-          message:
-            err instanceof Error ? err.message : 'Could not create campaign.',
-          variant: 'error',
-        })
-      }
+      })()
+    },
+    [navigate, refreshWorkspace],
+  )
+
+  const handleSetupApproved = useCallback(() => {
+    void (async () => {
+      await refreshWorkspace()
+      await refreshDashboard()
     })()
-  }, [companyId, navigate, refreshWorkspace])
+  }, [refreshWorkspace, refreshDashboard])
 
   useEffect(() => {
     if (!activeAccount) return
@@ -172,6 +209,49 @@ export default function DashboardPage() {
     )
   }
 
+  if (draftSetupCompany) {
+    return (
+      <>
+        <div className="flex min-h-dvh bg-secondary">
+          <CampaignSidebar
+            campaigns={companyCampaigns}
+            companies={accountCompanies}
+            companyId={draftSetupCompany.id}
+            showCampaigns
+            onCompanyChange={handleCompanyChange}
+            onAddCompany={handleAddCompany}
+            onCreateCampaign={handleCreateCampaign}
+            onCampaignSelect={handleCampaignNavigation}
+          />
+
+          <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">
+            <header className="flex items-center justify-between gap-4 border-b border-secondary bg-primary px-6 py-4">
+              <h1 className="font-display text-display-xs font-semibold text-primary">
+                New campaign
+              </h1>
+              <DashboardHeaderAccount />
+            </header>
+
+            <main className="flex-1 p-6">
+              <CampaignSetup
+                company={draftSetupCompany}
+                onApproved={handleSetupApproved}
+                onStarted={handleCampaignStarted}
+              />
+            </main>
+          </div>
+        </div>
+        {snackbar && (
+          <AppSnackbar
+            message={snackbar.message}
+            variant={snackbar.variant}
+            onDismiss={dismissSnackbar}
+          />
+        )}
+      </>
+    )
+  }
+
   if (!campaignId) {
     return (
       <>
@@ -183,6 +263,8 @@ export default function DashboardPage() {
             showCampaigns={false}
             onCompanyChange={handleCompanyChange}
             onAddCompany={handleAddCompany}
+            onCreateCampaign={handleCreateCampaign}
+            onCampaignSelect={handleCampaignNavigation}
           />
 
           <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">
@@ -235,6 +317,49 @@ export default function DashboardPage() {
     )
   }
 
+  if (!isCampaignSetupComplete(campaign)) {
+    return (
+      <>
+        <div className="flex min-h-dvh bg-secondary">
+          <CampaignSidebar
+            campaigns={companyCampaigns}
+            companies={accountCompanies}
+            companyId={companyId}
+            showCampaigns
+            onCompanyChange={handleCompanyChange}
+            onAddCompany={handleAddCompany}
+            onCreateCampaign={handleCreateCampaign}
+            onCampaignSelect={handleCampaignNavigation}
+          />
+
+          <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">
+            <header className="flex items-center justify-between gap-4 border-b border-secondary bg-primary px-6 py-4">
+              <h1 className="font-display text-display-xs font-semibold text-primary">
+                {campaign.name}
+              </h1>
+              <DashboardHeaderAccount />
+            </header>
+
+            <main className="flex-1 p-6">
+              <CampaignSetup
+                campaign={campaign}
+                company={selectedCompany ?? { id: campaign.companyId, name: campaign.companyName }}
+                onApproved={handleSetupApproved}
+              />
+            </main>
+          </div>
+        </div>
+        {snackbar && (
+          <AppSnackbar
+            message={snackbar.message}
+            variant={snackbar.variant}
+            onDismiss={dismissSnackbar}
+          />
+        )}
+      </>
+    )
+  }
+
   return (
     <>
       <div className="flex min-h-dvh bg-secondary">
@@ -245,6 +370,8 @@ export default function DashboardPage() {
           showCampaigns
           onCompanyChange={handleCompanyChange}
           onAddCompany={handleAddCompany}
+          onCreateCampaign={handleCreateCampaign}
+          onCampaignSelect={handleCampaignNavigation}
         />
 
         <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto">

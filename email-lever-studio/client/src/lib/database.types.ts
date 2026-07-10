@@ -5,6 +5,14 @@
 
 export type CompanyMemberRole = 'owner' | 'admin' | 'member'
 export type CampaignStatus = 'active' | 'paused' | 'completed'
+export type CampaignGoal =
+  | 'book_meeting'
+  | 'drive_purchase'
+  | 'get_reply'
+  | 'click_to_page'
+  | 'collect_info'
+  | 'referral'
+export type SocialProofStatus = 'not_started' | 'researched' | 'approved'
 
 export type AppUserRow = {
   id: string
@@ -40,6 +48,11 @@ export type CampaignRow = {
   name: string
   status: CampaignStatus
   default_writing_style_id: string | null
+  product_description: string | null
+  product_url: string | null
+  goal: CampaignGoal | null
+  social_proof_assets: Record<string, unknown>
+  social_proof_status: SocialProofStatus
   created_by: string | null
   extras: Record<string, unknown>
   created_at: string

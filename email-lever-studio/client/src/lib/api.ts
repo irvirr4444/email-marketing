@@ -102,6 +102,30 @@ export type GenerationResult = {
   propensity?: number
 }
 
+export type SocialProofResearchResult = SocialProofAssets & {
+  warnings?: string[]
+}
+
+/**
+ * Research social proof for a campaign brief. `productUrl` is treated as either
+ * a company or product URL depending on shape; `productDescription` is optional
+ * free text. Returns the discovered assets plus any fetch warnings.
+ */
+export async function researchSocialProof(input: {
+  productDescription?: string
+  productUrl?: string
+}): Promise<SocialProofResearchResult> {
+  const description = input.productDescription?.trim() || undefined
+  const url = input.productUrl?.trim() || undefined
+  const productUrl = url && isUrl(url) ? url : undefined
+
+  return postJson<SocialProofResearchResult>('/research-social-proof', {
+    productUrl,
+    productDescription: description,
+    config: RESEARCH_CONFIG,
+  })
+}
+
 export type StepCallback = (step: number) => void
 
 /** Bandit picks the levers; Claude suggest-levers is the fallback when the service is down. */

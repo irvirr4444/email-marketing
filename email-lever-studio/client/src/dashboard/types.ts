@@ -1,5 +1,6 @@
 import type { EmailVariableSnapshot } from '../../../shared/email-variables.ts'
 import type { SocialProofAssets } from '../../../shared/schema.ts'
+import type { CampaignGoal, SocialProofStatus } from '../lib/database.types'
 import {
   ENGAGEMENT_KEYS,
   type EngagementKey,
@@ -60,6 +61,8 @@ export type Company = {
   name: string
 }
 
+export type { CampaignGoal, SocialProofStatus } from '../lib/database.types'
+
 export type Campaign = {
   id: string
   name: string
@@ -67,6 +70,32 @@ export type Campaign = {
   companyName: string
   status: 'active' | 'paused' | 'completed'
   emailCount: number
+  productDescription?: string | null
+  productUrl?: string | null
+  goal?: CampaignGoal | null
+  socialProofAssets?: SocialProofAssets
+  /** Undefined = legacy campaign created before the brief flow (treated as ready). */
+  socialProofStatus?: SocialProofStatus
+}
+
+/** Fields a user can edit on a campaign brief before generation is unlocked. */
+export type CampaignBriefUpdate = {
+  productDescription?: string | null
+  productUrl?: string | null
+  goal?: CampaignGoal | null
+  socialProofAssets?: SocialProofAssets
+  socialProofStatus?: SocialProofStatus
+}
+
+/**
+ * True when a campaign has finished the brief flow and email generation should
+ * be unlocked. Legacy campaigns (no `socialProofStatus`) are treated as ready.
+ */
+export function isCampaignSetupComplete(campaign: Campaign): boolean {
+  return (
+    campaign.socialProofStatus == null ||
+    campaign.socialProofStatus === 'approved'
+  )
 }
 
 export type CampaignActivity = {
@@ -134,6 +163,9 @@ export const DEFAULT_FILTERS: EmailFilters = {
 export type ConnectedEmailSettings = {
   connected: boolean
   email: string | null
+  unipileAccountId?: string | null
+  provider?: string | null
+  status?: string | null
 }
 
 /** Drill-down signal for recipient-level engagement (matches {@link EngagementKey}). */

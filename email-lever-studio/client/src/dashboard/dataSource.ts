@@ -8,7 +8,12 @@
  * dashboard components stay largely unchanged.
  */
 import { isSupabaseConfigured } from '../lib/supabase'
-import type { Campaign, CampaignEmail, Company } from './types'
+import type {
+  Campaign,
+  CampaignBriefUpdate,
+  CampaignEmail,
+  Company,
+} from './types'
 import {
   computeCampaignActivity,
   filterEmails,
@@ -30,10 +35,14 @@ import {
   getCampaignById as sbGetCampaignById,
   listCampaignsForCompany as sbListCampaignsForCompany,
   listCompanies as sbListCompanies,
+  updateCampaignBrief as sbUpdateCampaignBrief,
 } from './data/workspace'
 import { listGeneratedEmailsForCampaign } from './data/generatedEmails'
 import { toCampaignEmail } from './data/toCampaignEmail'
-import { createCampaignForCompany as mockCreateCampaignForCompany } from './customWorkspace'
+import {
+  createCampaignForCompany as mockCreateCampaignForCompany,
+  updateCampaignBrief as mockUpdateCampaignBrief,
+} from './customWorkspace'
 
 /** True when the app should use Supabase-backed data instead of mock. */
 export function isSupabaseBackend(): boolean {
@@ -157,6 +166,17 @@ export async function createCampaignForCompany(
   }
   const created = await sbCreateCampaign(company.id, 'New campaign')
   return { ...created, companyName: company.name }
+}
+
+/** Persist campaign brief / social-proof edits. Returns the updated campaign. */
+export async function updateCampaignBrief(
+  campaignId: string,
+  patch: CampaignBriefUpdate,
+): Promise<Campaign> {
+  if (!isSupabaseBackend()) {
+    return mockUpdateCampaignBrief(campaignId, patch)
+  }
+  return sbUpdateCampaignBrief(campaignId, patch)
 }
 
 export {

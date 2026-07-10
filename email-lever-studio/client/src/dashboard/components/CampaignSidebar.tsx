@@ -23,11 +23,13 @@ type Props = {
   companies: Company[]
   companyId: string
   showCampaigns?: boolean
+  creatingCampaign?: boolean
   onCompanyChange: (companyId: string) => void
   onAddCompany: (
     name: string,
   ) => Promise<{ ok: true; companyId: string } | { ok: false; error: string }>
-
+  onCreateCampaign?: () => void
+  onCampaignSelect?: () => void
 }
 
 export default function CampaignSidebar({
@@ -35,8 +37,11 @@ export default function CampaignSidebar({
   companies,
   companyId,
   showCampaigns,
+  creatingCampaign = false,
   onCompanyChange,
   onAddCompany,
+  onCreateCampaign,
+  onCampaignSelect,
 }: Props) {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
@@ -75,6 +80,9 @@ export default function CampaignSidebar({
                   color="tertiary"
                   iconLeading={Plus}
                   aria-label="New campaign"
+                  isDisabled={creatingCampaign || !onCreateCampaign}
+                  isLoading={creatingCampaign}
+                  onClick={onCreateCampaign}
                   className="transition-transform duration-150 active:scale-95"
                 />
               </div>
@@ -103,6 +111,7 @@ export default function CampaignSidebar({
                     current={campaignId === campaign.id}
                     onClick={(e) => {
                       e.preventDefault()
+                      onCampaignSelect?.()
                       navigate(`/dashboard/campaign/${campaign.id}`)
                     }}
                     badge={

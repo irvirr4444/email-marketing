@@ -1,4 +1,4 @@
-import type { Campaign, Company } from './types'
+import type { Campaign, CampaignBriefUpdate, Company } from './types'
 
 const CUSTOM_COMPANIES_KEY = 'sigil-custom-companies'
 const CUSTOM_CAMPAIGNS_KEY = 'sigil-custom-campaigns'
@@ -63,9 +63,33 @@ export function createCampaignForCompany(company: Company): Campaign {
     companyName: company.name,
     status: 'active',
     emailCount: 0,
+    productDescription: null,
+    productUrl: null,
+    goal: null,
+    socialProofAssets: {},
+    socialProofStatus: 'not_started',
   }
 
   saveCustomCampaigns([...loadCustomCampaigns(), campaign])
 
   return campaign
+}
+
+/** Persist campaign brief / social-proof edits in the mock workspace. */
+export function updateCampaignBrief(
+  campaignId: string,
+  patch: CampaignBriefUpdate,
+): Campaign {
+  const campaigns = loadCustomCampaigns()
+  const index = campaigns.findIndex((c) => c.id === campaignId)
+  if (index === -1) {
+    throw new Error('Campaign not found in local workspace.')
+  }
+
+  const next: Campaign = { ...campaigns[index], ...patch }
+  const updated = [...campaigns]
+  updated[index] = next
+  saveCustomCampaigns(updated)
+
+  return next
 }

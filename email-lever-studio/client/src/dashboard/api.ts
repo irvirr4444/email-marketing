@@ -1,5 +1,24 @@
 import type { Campaign, CampaignEmail } from './types'
 
+export type UnipileAccount = {
+  id: string
+  email?: string | null
+  username?: string | null
+  name?: string | null
+  provider?: string | null
+  type?: string | null
+  status?: string | null
+}
+
+export type UnipileAccountsResponse = {
+  accounts: UnipileAccount[]
+  cursor: string | null
+}
+
+export type UnipileHostedAuthLinkResponse = {
+  url: string
+}
+
 const USE_MOCK =
   import.meta.env.VITE_USE_MOCK_DASHBOARD === 'false'
     ? false
@@ -71,4 +90,21 @@ export async function saveGeneratedEmail(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+}
+
+export async function fetchUnipileAccounts(): Promise<UnipileAccountsResponse> {
+  return fetchJson<UnipileAccountsResponse>('/api/unipile/accounts')
+}
+
+export async function createUnipileHostedAuthLink(
+  name: string,
+): Promise<UnipileHostedAuthLinkResponse> {
+  return fetchJson<UnipileHostedAuthLinkResponse>(
+    '/api/unipile/hosted-auth-link',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    },
+  )
 }

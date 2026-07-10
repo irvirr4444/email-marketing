@@ -16,6 +16,10 @@ import {
   patchEmailHandler,
   saveGeneratedEmailHandler,
 } from './routes/dashboard.js'
+import {
+  createUnipileHostedAuthLinkHandler,
+  listUnipileAccountsHandler,
+} from './routes/unipile.js'
 
 const app = express()
 const PORT = 3001
@@ -43,6 +47,8 @@ app.get('/api/dashboard/campaigns/:campaignId/emails', listCampaignEmailsHandler
 app.post('/api/dashboard/emails/:emailId/approve', approveEmailHandler)
 app.patch('/api/dashboard/emails/:emailId', patchEmailHandler)
 app.post('/api/dashboard/emails', saveGeneratedEmailHandler)
+app.get('/api/unipile/accounts', listUnipileAccountsHandler)
+app.post('/api/unipile/hosted-auth-link', createUnipileHostedAuthLinkHandler)
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`API server running on http://${HOST}:${PORT}`)

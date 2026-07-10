@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@ui/components/base/buttons/button'
 import { BadgeWithDot } from '@ui/components/base/badges/badges'
-import { Input } from '@ui/components/base/input/input'
 import { SlideoutMenu } from '@ui/components/application/slideout-menus/slideout-menu'
-import { Settings01 } from '@untitledui/icons'
+import { LinkExternal01, RefreshCw01, Settings01 } from '@untitledui/icons'
 import { useAuth } from '../../auth/useAuth'
+import {
+  createUnipileHostedAuthLink,
+  fetchUnipileAccounts,
+  type UnipileAccount,
+} from '../api'
 import ToolbarActionButton from '../components/ToolbarActionButton'
+
+function getAccountLabel(account: UnipileAccount) {
+  return account.email ?? account.username ?? account.name ?? account.id
+}
 
 export default function SettingsDrawer() {
   const { activeAccount, updateConnectedEmail } = useAuth()
@@ -13,20 +21,64 @@ export default function SettingsDrawer() {
     connected: false,
     email: null,
   }
-  const [draftEmail, setDraftEmail] = useState(settings.email ?? '')
+  const [error, setError] = useState<string | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
   useEffect(() => {
-    setDraftEmail(settings.email ?? '')
-  }, [settings.email, activeAccount?.id])
+    setError(null)
+  }, [activeAccount?.id])
 
-  const handleConnect = () => {
-    if (!draftEmail.trim()) return
-    updateConnectedEmail({ connected: true, email: draftEmail.trim() })
+  const handleConnect = async () => {
+    if (!activeAccount) return
+
+    setError(null)
+    setIsConnecting(true)
+    try {
+      const { url } = await createUnipileHostedAuthLink(activeAccount.id)
+      window.location.assign(url)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not start Unipile connection.',
+      )
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const handleCheckStatus = async () => {
+    setError(null)
+    setIsChecking(true)
+    try {
+      const { accounts } = await fetchUnipileAccounts()
+      const account = accounts[0]
+      if (!account) {
+        updateConnectedEmail({ connected: false, email: null })
+        setError('No Unipile accounts are connected yet.')
+        return
+      }
+
+      updateConnectedEmail({
+        connected: true,
+        email: getAccountLabel(account),
+        unipileAccountId: account.id,
+        provider: account.provider ?? account.type ?? null,
+        status: account.status ?? null,
+      })
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not check Unipile accounts.',
+      )
+    } finally {
+      setIsChecking(false)
+    }
   }
 
   const handleDisconnect = () => {
     updateConnectedEmail({ connected: false, email: null })
-    setDraftEmail('')
+    setError(null)
   }
 
   return (
@@ -57,33 +109,66 @@ export default function SettingsDrawer() {
                       Connected
                     </BadgeWithDot>
                     <p className="mt-3 text-sm font-medium text-primary">
-                      Email connected: {settings.email}
+                      Unipile account: {settings.email}
                     </p>
-                    <Button
-                      color="secondary"
-                      size="sm"
-                      className="mt-4"
-                      onClick={handleDisconnect}
-                    >
-                      Disconnect
-                    </Button>
+                    {settings.provider && (
+                      <p className="mt-1 text-xs text-quaternary">
+                        Provider: {settings.provider}
+                        {settings.status ? ` - Status: ${settings.status}` : ''}
+                      </p>
+                    )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        color="secondary"
+                        size="sm"
+                        iconLeading={RefreshCw01}
+                        isLoading={isChecking}
+                        onClick={handleCheckStatus}
+                      >
+                        Refresh status
+                      </Button>
+                      <Button
+                        color="secondary"
+                        size="sm"
+                        onClick={handleDisconnect}
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-3 space-y-4">
                     <p className="text-sm text-tertiary">
-                      Connect an email account to send approved emails from the
-                      dashboard.
+                      Connect a mailbox through Unipile Hosted Auth so approved
+                      emails can be sent from your own domain.
                     </p>
-                    <Input
-                      label="Email address"
-                      placeholder="you@company.com"
-                      value={draftEmail}
-                      onChange={setDraftEmail}
-                    />
-                    <Button color="primary" size="md" onClick={handleConnect}>
-                      Connect email
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        color="primary"
+                        size="md"
+                        iconLeading={LinkExternal01}
+                        isLoading={isConnecting}
+                        showTextWhileLoading
+                        onClick={handleConnect}
+                      >
+                        Connect with Unipile
+                      </Button>
+                      <Button
+                        color="secondary"
+                        size="md"
+                        iconLeading={RefreshCw01}
+                        isLoading={isChecking}
+                        onClick={handleCheckStatus}
+                      >
+                        Check status
+                      </Button>
+                    </div>
                   </div>
+                )}
+                {error && (
+                  <p className="mt-3 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+                    {error}
+                  </p>
                 )}
               </div>
             </SlideoutMenu.Content>

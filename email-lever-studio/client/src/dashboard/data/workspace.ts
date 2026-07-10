@@ -4,7 +4,8 @@ import type {
   CompanyRow,
   WritingStyleRow,
 } from '../../lib/database.types'
-import type { Campaign, Company } from '../types'
+import type { SocialProofAssets } from '../../../../shared/schema.ts'
+import type { Campaign, CampaignBriefUpdate, Company } from '../types'
 
 /** Map a company row to the app `Company` shape used across the dashboard. */
 export function toCompany(row: CompanyRow): Company {
@@ -24,6 +25,11 @@ export function toCampaign(
     companyName,
     status: row.status,
     emailCount,
+    productDescription: row.product_description,
+    productUrl: row.product_url,
+    goal: row.goal,
+    socialProofAssets: (row.social_proof_assets ?? {}) as SocialProofAssets,
+    socialProofStatus: row.social_proof_status,
   }
 }
 
@@ -95,20 +101,98 @@ export async function getCampaignById(
   return toCampaign(row, row.company_ref?.name ?? '', counts[row.id] ?? 0)
 }
 
+async function getNextCampaignName(
+  companyId: string,
+  baseName: string,
+): Promise<string> {
+  const supabase = requireSupabase()
+  const normalizedBase = baseName.trim()
+  const { data, error } = await supabase
+    .from('campaign')
+    .select('name')
+    .eq('company_id', companyId)
+    .ilike('name', `${normalizedBase}%`)
+  if (error) throw new Error(error.message)
+
+  const names = new Set(
+    ((data as Array<{ name: string }> | null) ?? []).map((row) =>
+      row.name.toLowerCase(),
+    ),
+  )
+  if (!names.has(normalizedBase.toLowerCase())) return normalizedBase
+
+  let suffix = 2
+  while (names.has(`${normalizedBase} ${suffix}`.toLowerCase())) {
+    suffix += 1
+  }
+  return `${normalizedBase} ${suffix}`
+}
+
+function isDuplicateCampaignNameError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = 'code' in error ? String(error.code) : ''
+  const message = 'message' in error ? String(error.message) : ''
+  return (
+    code === '23505' ||
+    message.includes('campaign_company_name_lower_idx') ||
+    message.includes('duplicate key value')
+  )
+}
+
 /** Create a campaign under a company. */
 export async function createCampaign(
   companyId: string,
   name: string,
 ): Promise<Campaign> {
   const supabase = requireSupabase()
+  const baseName = name.trim()
+  let candidate = await getNextCampaignName(companyId, baseName)
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await supabase
+      .from('campaign')
+      .insert({ company_id: companyId, name: candidate })
+      .select('*')
+      .single()
+    if (!error) {
+      const row = data as CampaignRow
+      return toCampaign(row, '', 0)
+    }
+    if (!isDuplicateCampaignNameError(error)) {
+      throw new Error(error.message)
+    }
+    // Handle concurrent creates by recomputing the next available name.
+    candidate = await getNextCampaignName(companyId, baseName)
+  }
+
+  throw new Error('Could not create campaign. Please try again.')
+}
+
+/** Persist campaign brief / social-proof edits. Returns the updated campaign. */
+export async function updateCampaignBrief(
+  campaignId: string,
+  patch: CampaignBriefUpdate,
+): Promise<Campaign> {
+  const supabase = requireSupabase()
+
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if ('productDescription' in patch) update.product_description = patch.productDescription
+  if ('productUrl' in patch) update.product_url = patch.productUrl
+  if ('goal' in patch) update.goal = patch.goal
+  if ('socialProofAssets' in patch) update.social_proof_assets = patch.socialProofAssets
+  if ('socialProofStatus' in patch) update.social_proof_status = patch.socialProofStatus
+
   const { data, error } = await supabase
     .from('campaign')
-    .insert({ company_id: companyId, name: name.trim() })
-    .select('*')
+    .update(update)
+    .eq('id', campaignId)
+    .select('*, company_ref:company_id (name)')
     .single()
   if (error) throw new Error(error.message)
-  const row = data as CampaignRow
-  return toCampaign(row, '', 0)
+
+  const row = data as CampaignRow & { company_ref: { name: string } | null }
+  const counts = await countEmailsByCampaign([row.id])
+  return toCampaign(row, row.company_ref?.name ?? '', counts[row.id] ?? 0)
 }
 
 /** Writing style catalog, ordered for display. */
